@@ -1,13 +1,25 @@
+import parser_API.parser
 from loader import bot
 from keyboards.reply.contact_button import requsts_contact
 from states.contact_information import UserInfoState
 from telebot.types import Message
+from parser_API.parser import requests_to_api, get_hotels
+from handlers.custom_handlers import lowprice
 
 
-@bot.message_handler(commands=['survey'])
-def survey(message):
+@bot.message_handler(commands=['start'])
+def start_func(message):
     bot.set_state(message.from_user.id, UserInfoState.name, message.chat.id)
-    bot.send_message(message.from_user.id, f'Здравствуйте {message.from_user.username}, пожалуйста введите свое имя')
+    text = """\nВас приветствует EasyTravelBot для поиска отеля в любой точке мира 🌍
+    \nДля начала нужно будет пройти небольшую регистрацию, которая позволит нам подбирать выгодные предложения именно для вас.\n
+    \nДоступные функции:
+    /lowprice - покажет самые дешевые отели в выбранном городе
+    /highprice - покажет самые дорогие отели в выбранном городе
+    /bestdeal - лучшие предложения на рынке
+    /history - история поиска
+        """
+    bot.send_message(message.from_user.id, f'Здравствуйте, {message.from_user.username}😃 ' + text)
+    bot.send_message(message.from_user.id, 'Введите ваше имя: ')
 
 
 @bot.message_handler(state=UserInfoState.name)
@@ -81,10 +93,60 @@ def get_phone_number(message: Message) -> None:
                    f'Возраст - {data["age"]}\n' \
                    f'Страна проживания - {data["country"]}\n' \
                    f'Город - {data["city"]}\n' \
-                   f'Номер телефона - {data["contact"]}'
+                   f'Номер телефона - {data["contact"]}\n\n' \
+                   f'Отлично, регистрация прошла успешна'
 
             bot.send_message(message.from_user.id, text)
+            msg = bot.send_message(message.from_user.id, '<b>Введите город для поиска отелей:</b>', parse_mode='html')
+            bot.register_next_step_handler(msg, start_req)
 
     else:
         bot.send_message(message.from_user.id, 'Для отправки контакта нажмите на кнопку ниже')
+
+
+@bot.message_handler(content_types=['text'])
+def start_req(message):
+
+    """Функция для запуска парсинга общей информации по отелям в указанном городе"""
+    if message.text.isalpha:
+        bot.send_message(message.from_user.id, f'Собираем данные по отелям в {message.text}.\n'
+                                               f'Это может занять немного времени')
+        id_hotel = requests_to_api(message.text)
+        msg = bot.send_message(message.from_user.id, 'Сколько отелей вывести на экран? ')
+        bot.register_next_step_handler(msg, count_hotels, id_hotel)
+
+
+    else:
+        bot.send_message(message.from_user.id, 'Название должно состоять из букв')
+
+
+@bot.message_handler(content_types=['text'])
+def count_hotels(message, id_hotel):
+    """Функция, которая принимает количество выводимых отелей"""
+
+    if not int(message.text):
+        bot.send_message(message.from_user.id, 'Ошибка. Введите число ')
+    else:
+        get_hotels(id_hotel, int(message.text))
+        bot.send_message(message.from_user.id, 'Выберите команду для поиска:'
+                                               '\n/lowprice - покажет самые дешевые отели в выбранном городе'
+                                               '\n/highprice - покажет самые дорогие отели в выбранном городе'
+                                               '\n/bestdeal - лучшие предложения на рынке'
+                                               '\n/history - история поиска')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
