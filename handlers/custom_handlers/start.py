@@ -111,9 +111,9 @@ def start_req(message):
     if message.text.isalpha:
         bot.send_message(message.from_user.id, f'Собираем данные по отелям в {message.text}.\n'
                                                f'Это может занять немного времени')
-        id_hotel = requests_to_api(message.text)
+        city_id = requests_to_api(message.text)
         msg = bot.send_message(message.from_user.id, 'Сколько отелей вывести на экран? ')
-        bot.register_next_step_handler(msg, count_hotels, id_hotel)
+        bot.register_next_step_handler(msg, count_hotels, city_id)
 
 
     else:
@@ -121,18 +121,17 @@ def start_req(message):
 
 
 @bot.message_handler(content_types=['text'])
-def count_hotels(message, id_hotel):
+def count_hotels(message, city_id):
     """Функция, которая принимает количество выводимых отелей"""
-
-    if not int(message.text):
-        bot.send_message(message.from_user.id, 'Ошибка. Введите число ')
-    else:
-        get_hotels(id_hotel, int(message.text))
-        bot.send_message(message.from_user.id, 'Выберите команду для поиска:'
+    get_hotels(city_id, int(message.text))
+    bot.send_message(message.from_user.id, 'Выберите команду для поиска:'
                                                '\n/lowprice - покажет самые дешевые отели в выбранном городе'
                                                '\n/highprice - покажет самые дорогие отели в выбранном городе'
-                                               '\n/bestdeal - лучшие предложения на рынке'
-                                               '\n/history - история поиска')
+                                               '\n/bestdeal - лучшие предложения на рынке')
+
+
+
+
 
 
 

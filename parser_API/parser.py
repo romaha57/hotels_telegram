@@ -2,6 +2,7 @@ import requests
 import json
 from config_data import config
 
+hotels = []
 
 HEADARS = {
     "X-RapidAPI-Key": config.RAPID_API_KEY,
@@ -21,7 +22,6 @@ def requests_to_api(city):
 
             return data["suggestions"][0]["entities"][0]["destinationId"]
 
-
     except Exception as e:
         print('Ошибка', e)
 
@@ -40,17 +40,27 @@ def get_hotels(city_id, count=10):
             data = json.loads(req.text)
             hotel_id = data["data"]["body"]["searchResults"]["results"][0]["id"]
             number = 0
+            global hotels
             while number != count:
+                lst = []
                 number += 1
                 # Выводим count самых дешевых отелей и информацию по ним
                 hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
+                lst.append(hotel_name)
                 hotel_id = data["data"]["body"]["searchResults"]["results"][number]["id"]
+                lst.append(hotel_id)
                 hotel_price = data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"]["current"]
+                lst.append(hotel_price)
                 hotel_address = data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
+                lst.append(hotel_address)
                 hotel_rating = data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
+                lst.append(hotel_rating)
                 hotel_star = data["data"]["body"]["searchResults"]["results"][number]["starRating"]
+                lst.append(hotel_star)
                 hotel_dist = data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
-                print(hotel_name)
+                lst.append(hotel_dist)
+                hotels.append(lst)
+
 
                 # get_photo(hotel_id)
 
@@ -72,4 +82,3 @@ def get_photo(hotel_id):
 
     except Exception as e:
         print('Ошибка', e)
-
