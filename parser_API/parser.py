@@ -3,7 +3,6 @@ import json
 from config_data import config
 
 hotels = []
-
 HEADARS = {
     "X-RapidAPI-Key": config.RAPID_API_KEY,
     "X-RapidAPI-Host": "hotels4.p.rapidapi.com"
@@ -23,24 +22,24 @@ def requests_to_api(city):
             return data["suggestions"][0]["entities"][0]["destinationId"]
 
     except Exception as e:
-        print('Ошибка', e)
+        print('Ошибка1', e)
 
 
-def get_hotels(city_id, count=10):
+def get_hotels(city_id, search_info, count=10, start_price=0, stop_price=100000):
     """Функция, для получения информации по отелям в указанном(выше) городе"""
-
     url = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": "25",
-                   "checkIn": "2020-01-08", "checkOut": "2020-01-15", "adults1": "1",
-                   "sortOrder": "PRICE", "locale": "en_US", "currency": "USD"}
+                   "checkIn": "2020-01-08", "checkOut":"2020-01-15", "adults1": "1",
+                   "priceMin": str(start_price), "priceMax": str(stop_price), "sortOrder": str(search_info),
+                   "locale": "en_US", "currency": "USD"}
 
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
         if req.status_code == 200:
+
             data = json.loads(req.text)
             hotel_id = data["data"]["body"]["searchResults"]["results"][0]["id"]
             number = 0
-            global hotels
             while number != count:
                 lst = []
                 number += 1
@@ -62,10 +61,12 @@ def get_hotels(city_id, count=10):
                 hotels.append(lst)
 
 
+
+
                 # get_photo(hotel_id)
 
     except Exception as e:
-        print('Ошибка', e)
+        print('Ошибка2', e)
 
 
 def get_photo(hotel_id):
@@ -81,4 +82,4 @@ def get_photo(hotel_id):
                 json.dump(data, file, indent=4)
 
     except Exception as e:
-        print('Ошибка', e)
+        print('Ошибка4', e)

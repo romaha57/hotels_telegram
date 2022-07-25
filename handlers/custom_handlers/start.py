@@ -94,40 +94,14 @@ def get_phone_number(message: Message) -> None:
                    f'Страна проживания - {data["country"]}\n' \
                    f'Город - {data["city"]}\n' \
                    f'Номер телефона - {data["contact"]}\n\n' \
-                   f'Отлично, регистрация прошла успешна'
+                   f'<b>Отлично, регистрация прошла успешна</b>'
 
-            bot.send_message(message.from_user.id, text)
-            msg = bot.send_message(message.from_user.id, '<b>Введите город для поиска отелей:</b>', parse_mode='html')
-            bot.register_next_step_handler(msg, start_req)
+            bot.send_message(message.from_user.id, text, parse_mode='html')
+            bot.send_message(message.from_user.id, 'Выберите команду для поиска:'
+                                                   '\n/lowprice - покажет самые дешевые отели в выбранном городе'
+                                                   '\n/highprice - покажет самые дорогие отели в выбранном городе'
+                                                   '\n/bestdeal - лучшие предложения на рынке')
 
-    else:
-        bot.send_message(message.from_user.id, 'Для отправки контакта нажмите на кнопку ниже')
-
-
-@bot.message_handler(content_types=['text'])
-def start_req(message):
-
-    """Функция для запуска парсинга общей информации по отелям в указанном городе"""
-    if message.text.isalpha:
-        bot.send_message(message.from_user.id, f'Собираем данные по отелям в {message.text}.\n'
-                                               f'Это может занять немного времени')
-        city_id = requests_to_api(message.text)
-        msg = bot.send_message(message.from_user.id, 'Сколько отелей вывести на экран? ')
-        bot.register_next_step_handler(msg, count_hotels, city_id)
-
-
-    else:
-        bot.send_message(message.from_user.id, 'Название должно состоять из букв')
-
-
-@bot.message_handler(content_types=['text'])
-def count_hotels(message, city_id):
-    """Функция, которая принимает количество выводимых отелей"""
-    get_hotels(city_id, int(message.text))
-    bot.send_message(message.from_user.id, 'Выберите команду для поиска:'
-                                               '\n/lowprice - покажет самые дешевые отели в выбранном городе'
-                                               '\n/highprice - покажет самые дорогие отели в выбранном городе'
-                                               '\n/bestdeal - лучшие предложения на рынке')
 
 
 
