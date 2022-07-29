@@ -1,10 +1,7 @@
-import parser_API.parser
 from loader import bot
 from keyboards.reply.contact_button import requsts_contact
 from states.contact_information import UserInfoState
 from telebot.types import Message
-from parser_API.parser import requests_to_api, get_hotels
-from handlers.custom_handlers import lowprice
 
 
 @bot.message_handler(commands=['start'])
@@ -102,7 +99,7 @@ def get_phone_number(message: Message) -> None:
                                                    '\n/highprice - покажет самые дорогие отели в выбранном городе'
                                                    '\n/bestdeal - лучшие предложения на рынке')
 
-
+    bot.set_state(message.from_user.id, UserInfoState.finish, message.chat.id)
 
 
 

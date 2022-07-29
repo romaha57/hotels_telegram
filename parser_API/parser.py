@@ -9,16 +9,15 @@ HEADARS = {
 }
 
 
-def requests_to_api(city):
-    """Функция, для get запроса и получение информации об указанном городе"""
+def requests_to_api(city_name):
+    """Функция, для get запроса и получение информации по отелям в указанном городе"""
 
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
-    querystring = {"query": str(city)}  # здесь указывается город
+    querystring = {"query": city_name}  # здесь указывается город
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
         if req.status_code == 200:
             data = json.loads(req.text)
-
             return data["suggestions"][0]["entities"][0]["destinationId"]
 
     except Exception as e:
@@ -28,21 +27,20 @@ def requests_to_api(city):
 def get_hotels(city_id, search_info, count=10, start_price=0, stop_price=100000):
     """Функция, для получения информации по отелям в указанном(выше) городе"""
     url = "https://hotels4.p.rapidapi.com/properties/list"
-    querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": "25",
+    querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": str(count),
                    "checkIn": "2020-01-08", "checkOut":"2020-01-15", "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price), "sortOrder": str(search_info),
                    "locale": "en_US", "currency": "USD"}
 
-    try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
-        if req.status_code == 200:
-
-            data = json.loads(req.text)
-            hotel_id = data["data"]["body"]["searchResults"]["results"][0]["id"]
-            number = 0
-            while number != count:
+    # try:
+    req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
+    if req.status_code == 200:
+        data = json.loads(req.text)
+        hotel_id = data["data"]["body"]["searchResults"]["results"][0]["id"]
+        number = 0
+        for elem in data["data"]["body"]["searchResults"]["results"]:
+            try:
                 lst = []
-                number += 1
                 # Выводим count самых дешевых отелей и информацию по ним
                 hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
                 lst.append(hotel_name)
@@ -50,7 +48,9 @@ def get_hotels(city_id, search_info, count=10, start_price=0, stop_price=100000)
                 lst.append(hotel_id)
                 hotel_price = data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"]["current"]
                 lst.append(hotel_price)
-                hotel_address = data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
+                # hotel_address = data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
+                hotel_address = data.get(data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"], '123')
+                print(hotel_address)
                 lst.append(hotel_address)
                 hotel_rating = data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
                 lst.append(hotel_rating)
@@ -59,14 +59,18 @@ def get_hotels(city_id, search_info, count=10, start_price=0, stop_price=100000)
                 hotel_dist = data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
                 lst.append(hotel_dist)
                 hotels.append(lst)
+                number += 1
+            except KeyError:
+                print('123')
+
 
 
 
 
                 # get_photo(hotel_id)
 
-    except Exception as e:
-        print('Ошибка2', e)
+    # except Exception as e:
+    #     print('Ошибка2', e)
 
 
 def get_photo(hotel_id):
