@@ -1,11 +1,12 @@
 import datetime
+from telebot.types import Message
 from loader import bot
 from states.lowhighprice import LowHighPrice
 from keyboards.inline.question_photo import question_photo
 
 
 @bot.message_handler(commands=['highprice'])
-def start(message):
+def start(message: Message) -> None:
     """Функция для запроса города для поиска"""
 
     bot.delete_state(message.from_user.id, message.chat.id)
@@ -14,7 +15,7 @@ def start(message):
 
 
 @bot.message_handler(state=LowHighPrice.city)
-def get_city(message):
+def get_city(message: Message) -> None:
     """Функция, для запроса количества отелей"""
 
     if message.text.isalpha():
@@ -28,7 +29,7 @@ def get_city(message):
 
 
 @bot.message_handler(state=LowHighPrice.hotel_count)
-def hotel_count(message):
+def hotel_count(message: Message) -> None:
     """Функция, для запроса даты  """
 
     if message.text.isdigit():
@@ -43,7 +44,7 @@ def hotel_count(message):
 
 
 @bot.message_handler(state=LowHighPrice.date)
-def date(message):
+def date(message: Message) -> None:
     """Функция, для распознования вводимой даты и вопроса о выводе фото"""
 
     dates = message.text.split('/')
@@ -63,7 +64,7 @@ def date(message):
 
 
 @bot.callback_query_handler(func=lambda call: True)
-def callback_inline(call):
+def callback_inline(call) -> None:
     """Обработчик inline-кнопок """
 
     if call.message:
@@ -74,7 +75,7 @@ def callback_inline(call):
 
 
 @bot.message_handler(state=LowHighPrice.photo_count)
-def photo_count(message):
+def photo_count(message: Message) -> None:
     """Функция, для подтверждения информации"""
 
     if message.text.isdigit():

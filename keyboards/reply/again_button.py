@@ -1,7 +1,7 @@
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 
-def requsts_contact() -> ReplyKeyboardMarkup:
+def start_again() -> ReplyKeyboardMarkup:
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keyboard.add(KeyboardButton('Отправить контакт', request_contact=True))
+    keyboard.add(KeyboardButton('/lowprice'))
     return keyboard
