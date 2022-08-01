@@ -1,7 +1,7 @@
 from telebot import types
 
 
-def question_photo() -> types.InlineKeyboardMarkup:
+def question_photo_low() -> types.InlineKeyboardMarkup:
     """Функция, которая выводит кнопки для запроса фото"""
 
     markup = types.InlineKeyboardMarkup()
