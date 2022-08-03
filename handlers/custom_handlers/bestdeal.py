@@ -3,7 +3,7 @@ from telebot.types import Message, CallbackQuery
 
 from keyboards.reply.again_button_best import start_again_best
 from loader import bot
-from parser_API.parser import requests_to_api, get_hotels
+from parser_API.parser import requests_to_api, get_hotels_bestdeal
 from states.UserStateBest import BestDealInfo
 from keyboards.inline.question_photo_best import question_photo_best
 from keyboards.inline.accept_info_best import accept_info_best
@@ -176,9 +176,16 @@ def show_hotels(message):
     city_id = requests_to_api(data["city_name"])
     if city_id is not None:
         bot.send_message(message.chat.id, 'Получаем информацию по отелям(2/3)...')
-        hotels = get_hotels(city_id=city_id, search_info="DISTANCE_FROM_LANDMARK",
-                            count=data["hotels_count"], start_price=data["prices"][0],
-                            stop_price=data["prices"][1])
+        hotels = get_hotels_bestdeal(city_id=city_id,
+                                     search_info="DISTANCE_FROM_LANDMARK",
+                                     count=data["hotels_count"],
+                                     start_price=data["prices"][0],
+                                     stop_price=data["prices"][1],
+                                     start_dist=data["dist_range"][0],
+                                     stop_dist=data["dist_range"][1],
+                                     bestdeal_list=[])
+        print(hotels)
+
         if hotels is not None:
             print_info(message, hotels)
         else:
@@ -194,10 +201,6 @@ def print_info(message, hotels):
         pass
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
-        if data["dist_range"][0] < (float(hotels[i][6][:3]) > data["dist_range"][1]):
-            bot.send_message(message.chat.id,
-                             'Отелей, по вашим параметрам удаленности от центра, больше не удалось найти  ')
-            continue
         total_cost = int(data["date"][2]) * int(hotels[i][2][1:])
         text = f'Название отеля: {hotels[i][0]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
