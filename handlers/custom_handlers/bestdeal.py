@@ -1,7 +1,9 @@
 import datetime
 from telebot.types import Message, CallbackQuery
 
+from database.my_db import add_in_db
 from keyboards.reply.again_button_best import start_again_best
+from keyboards.reply.all_command import all_commands
 from loader import bot
 from parser_API.parser import requests_to_api, get_hotels_bestdeal
 from states.UserStateBest import BestDealInfo
@@ -60,7 +62,9 @@ def date(message: Message) -> None:
         dists = message.text.split('-')
         start_dist = int(dists[0])
         stop_dist = int(dists[1])
-        bot.send_message(message.from_user.id, 'Теперь укажите количество отелей для вывода на экран:')
+        bot.send_message(message.from_user.id,
+                         'Теперь укажите количество отелей для вывода на экран:')
+
         bot.set_state(message.from_user.id, BestDealInfo.hotel_count, message.chat.id)
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
@@ -87,7 +91,7 @@ def hotel_count(message: Message) -> None:
 
 @bot.message_handler(state=BestDealInfo.date)
 def date(message: Message) -> None:
-    """Функция, для распознования вводимой даты и вопроса о выводе фото"""
+    """Функция, для распознавания вводимой даты и вопроса о выводе фото"""
 
     dates = message.text.split('/')
     try:
@@ -131,6 +135,7 @@ def callback_inline(call):
 @bot.message_handler(state=BestDealInfo.photo_count)
 def photo_count(message: Message) -> None:
     """Функция, для подтверждения информации"""
+    bot.set_state(message.from_user.id, BestDealInfo.finish, message.chat.id)
 
     if message.text.isdigit():
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
@@ -150,7 +155,6 @@ def photo_count(message: Message) -> None:
         bot.send_message(message.from_user.id, text, reply_markup=accept_info_best())
     else:
         bot.send_message(message.from_user.id, 'Введите, пожалуйста, число')
-    bot.set_state(message.from_user.id, BestDealInfo.finish, message.chat.id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'show_result2' or call.data == 'again2')
@@ -163,7 +167,8 @@ def callback_func(call: CallbackQuery) -> None:
 
         elif call.data == 'again2':
             bot.send_message(call.message.chat.id, 'Тогда давайте введем данные заново,'
-                                                   'Для этого нажмите на кнопку', reply_markup=start_again_best())
+                                                   'Для этого нажмите на кнопку',
+                             reply_markup=start_again_best())
 
 
 def show_hotels(message):
@@ -184,14 +189,14 @@ def show_hotels(message):
                                      start_dist=data["dist_range"][0],
                                      stop_dist=data["dist_range"][1],
                                      bestdeal_list=[])
-        print(hotels)
 
         if hotels is not None:
             print_info(message, hotels)
         else:
             bot.send_message(message.chat.id, 'К сожалению, не удалось найти информацию по отелям')
     else:
-        bot.send_message(message.chat.id, 'К сожалению, сервис с информацией по отелям временно не работает')
+        bot.send_message(message.chat.id,
+                         'К сожалению, сервис с информацией по отелям временно не работает')
 
 
 def print_info(message, hotels):
@@ -201,7 +206,7 @@ def print_info(message, hotels):
         pass
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
-        total_cost = int(data["date"][2]) * int(hotels[i][2][1:])
+        total_cost = round(int(data["date"][2]) * int(hotels[i][2][1:]), 2)
         text = f'Название отеля: {hotels[i][0]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
            f'\nРасположение от центра: {hotels[i][6]}' \
@@ -211,4 +216,16 @@ def print_info(message, hotels):
            f'\nРейтинг отеля: {hotels[i][4]}' \
 
         bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
     del hotels
+
+    bot.register_next_step_handler(message, add_in_database)
+
+
+def add_in_database(message):
+    date = datetime.datetime.now()
+    date = str(date)
+
+    users_tuple = (message.from_user.id, date, 'bestdeal')
+    add_in_db(users_tuple=users_tuple)
+

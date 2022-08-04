@@ -1,11 +1,14 @@
 import datetime
 from telebot.types import Message, CallbackQuery
+
+from keyboards.reply.all_command import all_commands
 from loader import bot
 from states.UserStateLow import UserStateLow
 from keyboards.inline.question_photo_low import question_photo_low
 from keyboards.inline.accept_info_low import accept_info_low
 from keyboards.reply.again_button_low import start_again_low
 from parser_API.parser import requests_to_api, get_hotels
+from database.my_db import add_in_db
 
 
 @bot.message_handler(commands=['lowprice'])
@@ -14,7 +17,6 @@ def start(message: Message) -> None:
 
     # Удаления состояния finish при переходе из других сценариев
     bot.delete_state(message.from_user.id, message.chat.id)
-
     # Установка состояния для города
     bot.set_state(message.from_user.id, UserStateLow.city, message.chat.id)
     bot.send_message(message.from_user.id, 'Укажите город для поиска отелей:')
@@ -97,6 +99,7 @@ def callback_inline(call: CallbackQuery) -> None:
 def photo_count(message: Message) -> None:
     """Функция, для подтверждения информации"""
 
+    bot.set_state(message.from_user.id, UserStateLow.finish, message.chat.id)
     if message.text.isdigit():
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['photo_count'] = message.text
@@ -113,7 +116,6 @@ def photo_count(message: Message) -> None:
         bot.send_message(message.from_user.id, text, reply_markup=accept_info_low())
     else:
         bot.send_message(message.from_user.id, 'Введите, пожалуйста, число')
-    bot.set_state(message.from_user.id, UserStateLow.finish, message.chat.id)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'show_result' or call.data == 'again')
@@ -126,7 +128,8 @@ def callback_func(call: CallbackQuery) -> None:
 
         elif call.data == 'again':
             bot.send_message(call.message.chat.id, 'Тогда давайте введем данные заново,'
-                                                   'Для этого нажмите на кнопку', reply_markup=start_again_low())
+                                                   'Для этого нажмите на кнопку',
+                             reply_markup=start_again_low())
 
 
 def show_hotels(message):
@@ -145,7 +148,8 @@ def show_hotels(message):
         else:
             bot.send_message(message.chat.id, 'К сожалению, не удалось найти информацию по отелям')
     else:
-        bot.send_message(message.chat.id, 'К сожалению, сервис с информацией по отелям временно не работает')
+        bot.send_message(message.chat.id,
+                         'К сожалению, сервис с информацией по отелям временно не работает')
 
 
 def print_info(message, hotels):
@@ -155,7 +159,7 @@ def print_info(message, hotels):
         pass
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
-        total_cost = int(data["date"][2]) * int(hotels[i][2][1:])
+        total_cost = round(int(data["date"][2]) * int(hotels[i][2][1:]), 2)
         text = f'Название отеля: {hotels[i][0]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
            f'\nРасположение от центра: {hotels[i][6]}' \
@@ -165,4 +169,17 @@ def print_info(message, hotels):
            f'\nРейтинг отеля: {hotels[i][4]}' \
 
         bot.send_message(message.chat.id, text)
+    bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
     del hotels
+
+    bot.register_next_step_handler(message, add_in_database)
+
+
+def add_in_database(message):
+    date = datetime.datetime.now()
+    date = str(date)
+
+    users_tuple = (message.from_user.id, date, 'lowprice')
+    add_in_db(users_tuple=users_tuple)
+
+

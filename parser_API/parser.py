@@ -18,7 +18,6 @@ def requests_to_api(city_name):
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
         if req.status_code == 200:
             data = json.loads(req.text)
-
             return data["suggestions"][0]["entities"][0]["destinationId"]
 
     except Exception as e:
