@@ -170,16 +170,15 @@ def print_info(message, hotels):
 
         bot.send_message(message.chat.id, text)
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
+    bot.register_next_step_handler(message, add_in_database, hotels)
     del hotels
 
-    bot.register_next_step_handler(message, add_in_database)
 
-
-def add_in_database(message):
+def add_in_database(message, hotels):
     date = datetime.datetime.now()
     date = str(date)
 
     users_tuple = (message.from_user.id, date, 'lowprice')
-    add_in_db(users_tuple=users_tuple)
+    add_in_db(users_info=users_tuple, hotels=hotels)
 
 
