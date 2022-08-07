@@ -1,6 +1,6 @@
 import datetime
 from telebot.types import Message, CallbackQuery
-
+from typing import List, Tuple
 from database.my_db import add_in_db
 from loader import bot
 from states.UserStateHigh import UserStateHigh
@@ -27,7 +27,8 @@ def get_city_high(message: Message) -> None:
     """Функция, для запроса количества отелей"""
 
     if not message.text.isdigit():
-        bot.send_message(message.from_user.id, 'Теперь укажите количество отелей для вывода на экран:')
+        bot.send_message(message.from_user.id,
+                         'Теперь укажите количество отелей для вывода на экран:')
         bot.set_state(message.from_user.id, UserStateHigh.hotel_count, message.chat.id)
 
         # получение доступа к данным, заданным в состояниях
@@ -132,7 +133,7 @@ def callback_func_high(call: CallbackQuery) -> None:
                              reply_markup=start_again_high())
 
 
-def show_hotels_high(message):
+def show_hotels_high(message: Message) -> None:
     """Функция для подключения к API-hotels и обработки ошибок при подключении"""
 
     bot.send_message(message.chat.id,
@@ -152,7 +153,7 @@ def show_hotels_high(message):
         bot.send_message(message.chat.id, 'К сожалению, сервис с информацией по отелям временно не работает')
 
 
-def print_info_high(message, hotels):
+def print_info_high(message: Message, hotels: List[Tuple]) -> None:
     """Функция для вывода информации по отелям в телеграмм(с заданными параметрами)"""
 
     with bot.retrieve_data(message.chat.id) as data:
@@ -160,7 +161,7 @@ def print_info_high(message, hotels):
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
         total_cost = round(int(data["date"][2]) * float(hotels[i][2][1:]), 2)
-        text = f'Название отеля: {hotels[i][0]}' \
+        text = f'Название отеля: {hotels[i][1]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
            f'\nРасположение от центра: {hotels[i][6]}' \
            f'\nЦена за сутки: {hotels[i][2]}' \
@@ -175,11 +176,11 @@ def print_info_high(message, hotels):
     del hotels
 
 
-def add_in_database(message, hotels):
+def add_in_database(message: Message, hotels: List[Tuple]) -> None:
     date = datetime.datetime.now()
     date = str(date)
 
-    users_tuple = (message.from_user.id, date, 'highprice')
+    users_tuple = (message.from_user.id, date[:-6], 'highprice')
     add_in_db(users_info=users_tuple, hotels=hotels)
 
 

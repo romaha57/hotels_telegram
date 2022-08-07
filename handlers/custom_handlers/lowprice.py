@@ -1,6 +1,6 @@
 import datetime
 from telebot.types import Message, CallbackQuery
-
+from typing import List, Tuple
 from keyboards.reply.all_command import all_commands
 from loader import bot
 from states.UserStateLow import UserStateLow
@@ -27,7 +27,8 @@ def get_city(message: Message) -> None:
     """Функция, для запроса количества отелей"""
 
     if not message.text.isdigit():
-        bot.send_message(message.from_user.id, 'Теперь укажите количество отелей для вывода на экран:')
+        bot.send_message(message.from_user.id,
+                         'Теперь укажите количество отелей для вывода на экран:')
         bot.set_state(message.from_user.id, UserStateLow.hotel_count, message.chat.id)
 
         # получение доступа к данным, заданным в состояниях
@@ -54,7 +55,7 @@ def hotel_count(message: Message) -> None:
 
 @bot.message_handler(state=UserStateLow.date)
 def date(message: Message) -> None:
-    """Функция, для распознования вводимой даты и вопроса о выводе фото"""
+    """Функция, для распознавания вводимой даты и вопроса о выводе фото"""
 
     dates = message.text.split('/')
     try:
@@ -132,7 +133,7 @@ def callback_func(call: CallbackQuery) -> None:
                              reply_markup=start_again_low())
 
 
-def show_hotels(message):
+def show_hotels(message: Message) -> None:
     """Функция для подключения к API-hotels и обработки ошибок при подключении"""
 
     bot.send_message(message.chat.id, 'Отлично, начинаем поиск(это может занять некоторое время...)')
@@ -142,8 +143,11 @@ def show_hotels(message):
     city_id = requests_to_api(data["city_name"])
     if city_id is not None:
         bot.send_message(message.chat.id, 'Получаем информацию по отелям(2/3)...')
+
+        # запрос для вывода информации по отелям с командой lowprice
         hotels = get_hotels(city_id=city_id, search_info="PRICE", count=data["hotels_count"])
         if hotels is not None:
+            # если ошибок нет переходим в функцию вывода информации по отелям
             print_info(message, hotels)
         else:
             bot.send_message(message.chat.id, 'К сожалению, не удалось найти информацию по отелям')
@@ -152,15 +156,17 @@ def show_hotels(message):
                          'К сожалению, сервис с информацией по отелям временно не работает')
 
 
-def print_info(message, hotels):
+def print_info(message: Message, hotels: List[Tuple]) -> None:
     """Функция для вывода информации по отелям в телеграмм(с заданными параметрами)"""
 
     with bot.retrieve_data(message.chat.id) as data:
         pass
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
+
+        # подсчет общей стоимости отеля
         total_cost = round(int(data["date"][2]) * int(hotels[i][2][1:]), 2)
-        text = f'Название отеля: {hotels[i][0]}' \
+        text = f'Название отеля: {hotels[i][1]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
            f'\nРасположение от центра: {hotels[i][6]}' \
            f'\nЦена за сутки: {hotels[i][2]}' \
@@ -171,14 +177,19 @@ def print_info(message, hotels):
         bot.send_message(message.chat.id, text)
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
     bot.register_next_step_handler(message, add_in_database, hotels)
+
+    # Удаление списка отеля(думаю так должно быстрее работать и не занимать лишнюю память)
     del hotels
 
 
-def add_in_database(message, hotels):
+def add_in_database(message: Message, hotels: List[Tuple]) -> None:
+    """Функция, для передачи данных для записи в БД"""
+
+    # текущая дата и время
     date = datetime.datetime.now()
     date = str(date)
 
-    users_tuple = (message.from_user.id, date, 'lowprice')
+    users_tuple = (message.from_user.id, date[:-6], 'lowprice')
     add_in_db(users_info=users_tuple, hotels=hotels)
 
 

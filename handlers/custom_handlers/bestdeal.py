@@ -1,6 +1,6 @@
 import datetime
 from telebot.types import Message, CallbackQuery
-
+from typing import List, Tuple
 from database.my_db import add_in_db
 from keyboards.reply.again_button_best import start_again_best
 from keyboards.reply.all_command import all_commands
@@ -171,7 +171,7 @@ def callback_func(call: CallbackQuery) -> None:
                              reply_markup=start_again_best())
 
 
-def show_hotels(message):
+def show_hotels(message: Message) -> None:
     """Функция для подключения к API-hotels и обработки ошибок при подключении"""
 
     bot.send_message(message.chat.id, 'Отлично, начинаем поиск(это может занять некоторое время...)')
@@ -199,7 +199,7 @@ def show_hotels(message):
                          'К сожалению, сервис с информацией по отелям временно не работает')
 
 
-def print_info(message, hotels):
+def print_info(message: Message, hotels: List[Tuple]) -> None:
     """Функция для вывода информации по отелям в телеграмм(с заданными параметрами)"""
 
     with bot.retrieve_data(message.chat.id) as data:
@@ -207,7 +207,7 @@ def print_info(message, hotels):
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
         total_cost = round(int(data["date"][2]) * int(hotels[i][2][1:]), 2)
-        text = f'Название отеля: {hotels[i][0]}' \
+        text = f'Название отеля: {hotels[i][1]}' \
            f'\nАдрес отеля: {hotels[i][3]}' \
            f'\nРасположение от центра: {hotels[i][6]}' \
            f'\nЦена за сутки: {hotels[i][2]}' \
@@ -222,11 +222,10 @@ def print_info(message, hotels):
     del hotels
 
 
-
-def add_in_database(message, hotels):
+def add_in_database(message: Message, hotels: List[Tuple]) -> None:
     date = datetime.datetime.now()
     date = str(date)
 
-    users_tuple = (message.from_user.id, date, 'bestdeal')
+    users_tuple = (message.from_user.id, date[:-6], 'bestdeal')
     add_in_db(users_info=users_tuple, hotels=hotels)
 
