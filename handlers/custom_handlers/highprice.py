@@ -8,7 +8,7 @@ from keyboards.inline.question_photo_high import question_photo_high
 from keyboards.inline.accept_info_high import accept_info_high
 from keyboards.reply.again_button_high import start_again_high
 from keyboards.reply.all_command import all_commands
-from parser_API.parser import requests_to_api, get_hotels
+from parser_API.parser import requests_to_api, get_hotels, get_photo
 
 
 @bot.message_handler(commands=['highprice'])
@@ -144,16 +144,28 @@ def show_hotels_high(message: Message) -> None:
     city_id = requests_to_api(data["city_name"])
     if city_id is not None:
         bot.send_message(message.chat.id, 'Получаем информацию по отелям(2/3)...')
+
         hotels = get_hotels(city_id=city_id, search_info="PRICE_HIGHEST_FIRST", count=data["hotels_count"])
         if hotels is not None:
-            print_info_high(message, hotels)
+            all_photo_list = []
+            try:
+                for hotel in hotels:
+                    photo_list = get_photo(hotel[0], data["photo_count"])
+                    if photo_list is not None:
+                        all_photo_list.append(photo_list)
+                    else:
+                        all_photo_list.append(['фото не найдено'])
+            except Exception:
+                pass
+            print_info_high(message, hotels, all_photo_list)
+
         else:
             bot.send_message(message.chat.id, 'К сожалению, не удалось найти информацию по отелям')
     else:
         bot.send_message(message.chat.id, 'К сожалению, сервис с информацией по отелям временно не работает')
 
 
-def print_info_high(message: Message, hotels: List[Tuple]) -> None:
+def print_info_high(message: Message, hotels: List[Tuple], all_photo_list: List[List]) -> None:
     """Функция для вывода информации по отелям в телеграмм(с заданными параметрами)"""
 
     with bot.retrieve_data(message.chat.id) as data:
@@ -170,6 +182,14 @@ def print_info_high(message: Message, hotels: List[Tuple]) -> None:
            f'\nРейтинг отеля: {hotels[i][4]}' \
 
         bot.send_message(message.chat.id, text)
+
+        # Отправка фото
+        for elem in all_photo_list[i]:
+            if elem == 'фото не найдено':
+                bot.send_message(message.chat.id, f'Для отеля {hotels[i][1]} не удалось найти фото')
+            else:
+                bot.send_photo(message.chat.id, elem)
+
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
     bot.register_next_step_handler(message, add_in_database, hotels)
 

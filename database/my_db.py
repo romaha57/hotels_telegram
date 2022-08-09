@@ -31,12 +31,12 @@ def add_in_db(users_info, hotels):
     connect.close()
 
 
-def get_info_from_database(user_id):
+def get_info_from_database(user_id, limit):
     """Функция, которая выводит информацию по отелям из БД"""
 
     connect = sqlite3.connect('hotels.db', check_same_thread=False)
     cursor = connect.cursor()
-    info = cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id, ))
+    info = cursor.execute("SELECT * FROM users WHERE user_id = ? LIMIT ?", (user_id, limit))
 
     # Возвращаем кортежи из БД для определнного id пользователя
     return info

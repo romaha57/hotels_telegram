@@ -186,18 +186,31 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
         return None
 
 
-def get_photo(hotel_id: int):
+def get_photo(hotel_id: int, photo_count: str):
     """Функция для получения фото по id отеля"""
 
     url = "https://hotels4.p.rapidapi.com/properties/get-hotel-photos"
-    querystring = {"id": str(hotel_id)}
+    querystring = {"id": hotel_id}
 
     try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
+        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
         if req.status_code == 200:
             data = json.loads(req.text)
-            with open('photo.json', 'a') as file:
-                json.dump(data, file, indent=4)
+
+            photo_list = []
+            try:
+                for photo in data["hotelImages"]:
+
+                    # Проверяем колиечство спарсенных фото
+                    if len(photo_list) == int(photo_count):
+                        break
+                    # превращаем строку в ссылку на фото и добавляем в список
+                    temp = photo["baseUrl"][:-11] + '.jpg'
+                    photo_list.append(temp)
+                return photo_list
+
+            except Exception:
+                return None
 
     except Exception as e:
-        print(e)
+        print(e, 'ошибка')
