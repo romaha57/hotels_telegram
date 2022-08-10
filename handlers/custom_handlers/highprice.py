@@ -2,6 +2,7 @@ import datetime
 from telebot.types import Message, CallbackQuery, InputMediaPhoto
 from typing import List, Tuple
 from database.my_db import add_in_db
+from keyboards.inline.geo import geo
 from loader import bot
 from states.UserStateHigh import UserStateHigh
 from keyboards.inline.question_photo_high import question_photo_high
@@ -188,7 +189,9 @@ def print_info_high(message: Message, hotels: List[Tuple], all_photo_list: List[
            f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
         # Отправка фото
-        bot.send_message(message.chat.id, text)
+        bot.send_message(message.chat.id,
+                         text,
+                         reply_markup=geo(hotels[i][7], hotels[i][8]))
         try:
             bot.send_media_group(message.chat.id,
                                  [InputMediaPhoto(media=photo)
@@ -205,6 +208,19 @@ def print_info_high(message: Message, hotels: List[Tuple], all_photo_list: List[
     bot.register_next_step_handler(message, add_in_database, hotels)
 
     del hotels
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('geo'))
+def callback_func(call: CallbackQuery) -> None:
+    """Обработчик inline-кнопок для вывода геопозиции """
+
+    if call.message:
+        geo_data = call.data.split('/')
+        print(geo_data)
+        lat = float(geo_data[1])
+        lon = float(geo_data[2])
+        if call.data:
+            bot.send_location(call.message.chat.id, latitude=lat, longitude=lon)
 
 
 def add_in_database(message: Message, hotels: List[Tuple]) -> None:

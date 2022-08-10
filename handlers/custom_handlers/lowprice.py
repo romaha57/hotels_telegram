@@ -1,6 +1,8 @@
 import datetime
 from telebot.types import Message, CallbackQuery, InputMediaPhoto
 from typing import List, Tuple
+
+from keyboards.inline.geo import geo
 from keyboards.reply.all_command import all_commands
 from loader import bot
 from states.UserStateLow import UserStateLow
@@ -194,7 +196,9 @@ def print_info(message: Message, hotels: List[Tuple], all_photo_list: List[List]
            f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
         # Отправка фото
-        bot.send_message(message.chat.id, text)
+        bot.send_message(message.chat.id,
+                         text,
+                         reply_markup=geo(hotels[i][7], hotels[i][8]))
         try:
             bot.send_media_group(message.chat.id,
                                  [InputMediaPhoto(media=photo)
@@ -212,6 +216,18 @@ def print_info(message: Message, hotels: List[Tuple], all_photo_list: List[List]
 
     # Удаление списка отеля(думаю так должно быстрее работать и не занимать лишнюю память)
     del hotels
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('geo'))
+def callback_func(call: CallbackQuery) -> None:
+    """Обработчик inline-кнопок для вывода геопозиции """
+
+    if call.message:
+        geo_data = call.data.split('/')
+        lat = float(geo_data[1])
+        lon = float(geo_data[2])
+        if call.data:
+            bot.send_location(call.message.chat.id, latitude=lat, longitude=lon)
 
 
 def add_in_database(message: Message, hotels: List[Tuple]) -> None:

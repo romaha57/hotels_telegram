@@ -47,38 +47,47 @@ def get_hotels(city_id: int, search_info: str, count: int, start_price=0, stop_p
         for elem in data["data"]["body"]["searchResults"]["results"]:
             try:
                 hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
-            except Exception:
+            except KeyError:
 
                 # Обработка ошибки, если не найдем ключ и вставка значения по умолчанию
                 hotel_name = 'Название отеля отсутствует'
             try:
                 hotel_id = data["data"]["body"]["searchResults"]["results"][number]["id"]
-            except Exception:
+            except KeyError:
                 hotel_id = '0'
             try:
                 hotel_price = data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"]["current"]
                 hotel_price = str(hotel_price).replace(',', '.')
-            except Exception:
+            except KeyError:
                 hotel_price = 'Цена отсутствует'
             try:
                 hotel_address = data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
-            except Exception:
-                hotel_address = 'Адрес отсутствует'
+            except KeyError:
+                hotel_address = 'Адрес доступен по кнопке ниже'
             try:
                 hotel_rating = data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
-            except Exception:
+            except KeyError:
                 hotel_rating = 'Рейтинг отеля отсутствует'
             try:
                 hotel_star = data["data"]["body"]["searchResults"]["results"][number]["starRating"]
-            except Exception:
+            except KeyError:
                 hotel_star = 'Количество звезд у отеля неизвестно'
             try:
                 hotel_dist = data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
-            except Exception:
+            except KeyError:
                 hotel_dist = 'неизвестно'
+            try:
+                hotel_lat = data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lat"]
+            except KeyError:
+                hotel_lat = 'неизвестно'
+            try:
+                hotel_lon = data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lon"]
+            except KeyError:
+                hotel_lon = 'неизвестно'
 
             new_tuple = (
-                hotel_id, hotel_name, hotel_price, hotel_address, hotel_rating, hotel_star, hotel_dist
+                hotel_id, hotel_name, hotel_price, hotel_address, hotel_rating,
+                hotel_star, hotel_dist, hotel_lat, hotel_lon
             )
             hotels.append(new_tuple)
             number += 1
@@ -118,17 +127,17 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
                     # Проверка на вхождение в диапозоне расстояния от центра, указанный пользователем
                     if float(hotel_dist[:3]) < start_dist or float(hotel_dist[:3]) > stop_dist:
                         continue
-                except Exception:
+                except KeyError:
                     hotel_dist = 'неизвестно'
 
                 try:
                     hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
-                except Exception:
+                except KeyError:
                     hotel_name = 'Название отеля отсутствует'
 
                 try:
                     hotel_id = data["data"]["body"]["searchResults"]["results"][number]["id"]
-                except Exception:
+                except KeyError:
                     hotel_id = '0'
 
                 try:
@@ -136,30 +145,43 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
                         data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"][
                             "current"]
                     hotel_price = str(hotel_price).replace(',', '.')
-                except Exception:
+                except KeyError:
                     hotel_price = 'Цена отсутствует'
 
                 try:
                     hotel_address = \
                         data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
-                except Exception:
-                    hotel_address = 'Адрес отсутствует'
+                except KeyError:
+                    hotel_address = 'Адрес доступен по кнопке ниже'
 
                 try:
                     hotel_rating = \
                         data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
-                except Exception:
+                except KeyError:
                     hotel_rating = 'Рейтинг отеля отсутствует'
 
                 try:
                     hotel_star = \
                         data["data"]["body"]["searchResults"]["results"][number]["starRating"]
-                except Exception:
+                except KeyError:
                     hotel_star = 'Количество звезд у отеля неизвестно'
+                try:
+                    hotel_lat = \
+                    data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lat"]
+
+                except KeyError:
+                    hotel_lat = 'неизвестно'
+
+                try:
+                    hotel_lon = \
+                    data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lon"]
+
+                except KeyError:
+                    hotel_lon = 'неизвестно'
 
                 new_tuple = (
                     hotel_id, hotel_name, hotel_price,
-                    hotel_address, hotel_rating, hotel_star, hotel_dist
+                    hotel_address, hotel_rating, hotel_star, hotel_dist, hotel_lat, hotel_lon
                     )
 
                 if hotel_id != '0':
