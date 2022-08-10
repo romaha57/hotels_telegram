@@ -14,7 +14,7 @@ def requests_to_api(city_name: str) -> int:
     """Функция, для get запроса и получение информации по отелям в указанном городе"""
 
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
-    querystring = {"query": city_name}  # здесь указывается город
+    querystring = {"query": city_name, "locale": "ru_RU"}  # здесь указывается город
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
         if req.status_code == 200:
@@ -35,7 +35,7 @@ def get_hotels(city_id: int, search_info: str, count: int, start_price=0, stop_p
     querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": str(count),
                    "checkIn": "2020-01-08", "checkOut":"2020-01-15", "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price),
-                   "sortOrder": search_info, "locale": "en_US", "currency": "USD"}
+                   "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
 
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
@@ -98,7 +98,7 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
     querystring = {"destinationId": str(city_id), "pageNumber": page_num, "pageSize": "25",
                    "checkIn": "2020-01-08", "checkOut": "2020-01-15", "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price),
-                   "sortOrder": search_info, "locale": "en_US", "currency": "USD"}
+                   "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
 
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
@@ -113,6 +113,7 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
                 try:
                     hotel_dist = \
                         data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
+                    hotel_dist = str(hotel_dist).replace(',', '.')
 
                     # Проверка на вхождение в диапозоне расстояния от центра, указанный пользователем
                     if float(hotel_dist[:3]) < start_dist or float(hotel_dist[:3]) > stop_dist:
@@ -156,11 +157,11 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
                 except Exception:
                     hotel_star = 'Количество звезд у отеля неизвестно'
 
-
                 new_tuple = (
                     hotel_id, hotel_name, hotel_price,
                     hotel_address, hotel_rating, hotel_star, hotel_dist
                     )
+
                 if hotel_id != '0':
                     bestdeal_list.append(new_tuple)
                     continue
