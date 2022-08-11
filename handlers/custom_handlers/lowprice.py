@@ -1,7 +1,7 @@
 import datetime
 from telebot.types import Message, CallbackQuery, InputMediaPhoto
 from typing import List, Tuple
-
+from telegram_bot_calendar import DetailedTelegramCalendar
 from keyboards.inline.geo import geo
 from keyboards.reply.all_command import all_commands
 from loader import bot
@@ -45,36 +45,64 @@ def hotel_count(message: Message) -> None:
     """Функция, для запроса даты  """
 
     if message.text.isdigit():
-        text = '📅 Отлично, теперь укажите даты бронирования отеля(формат: дд-мм-гггг/дд-мм-гггг)'
-        bot.send_message(message.from_user.id, text)
-        bot.set_state(message.from_user.id, UserStateLow.date, message.chat.id)
-
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['hotels_count'] = message.text
+        bot.set_state(message.from_user.id, UserStateLow.photo_count, message.chat.id)
+
+        calendar, step = DetailedTelegramCalendar(calendar_id=1,
+                                                  locale='ru',
+                                                  min_date=datetime.date.today()).build()
+
+        bot.send_message(message.chat.id, f'Выберите дату заселения: ',
+                         reply_markup=calendar)
+
     else:
         bot.send_message(message.from_user.id, 'Введите, пожалуйста, цифрами')
 
 
-@bot.message_handler(state=UserStateLow.date)
-def date(message: Message) -> None:
-    """Функция, для распознавания вводимой даты и вопроса о выводе фото"""
+@bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
+def calendar(call: CallbackQuery):
+    result, key, step = DetailedTelegramCalendar(calendar_id=1,
+                                                 locale='ru',
+                                                 min_date=datetime.date.today()).process(call.data)
+    if not result and key:
+        bot.edit_message_text(f'Выберите месяц:',
+                              call.message.chat.id,
+                              call.message.message_id,
+                              reply_markup=key)
+    elif result:
+        bot.edit_message_text(f'➡ Заезд: {result}',
+                              call.message.chat.id,
+                              call.message.message_id)
+        with bot.retrieve_data(call.message.chat.id) as data:
+            data["check_in"] = str(result)
 
-    dates = message.text.split('/')
-    try:
-        # Проверка вводимой даты на шаблон и обработка ошибки
+        calendar, step = DetailedTelegramCalendar(calendar_id=2,
+                                                  locale='ru',
+                                                  min_date=datetime.date.today()).build()
+        bot.send_message(call.message.chat.id, f'Выберите дату выезда:',
+                         reply_markup=calendar)
 
-        check_in = datetime.datetime.strptime(str(dates[0]), '%d-%m-%Y')
-        check_out = datetime.datetime.strptime(str(dates[1]), '%d-%m-%Y')
-        days = check_out - check_in
-        bot.send_message(message.from_user.id, '📸 Вывести результат поиска с фото?'
+
+@bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=2))
+def calendar(call: CallbackQuery):
+    result, key, step = DetailedTelegramCalendar(calendar_id=2,
+                                                 locale='ru',
+                                                 min_date=datetime.date.today()).process(call.data)
+    if not result and key:
+        bot.edit_message_text(f'Выберите месяц :',
+                              call.message.chat.id,
+                              call.message.message_id,
+                              reply_markup=key)
+    elif result:
+        bot.edit_message_text(f'⬅ Выезд: {result}',
+                              call.message.chat.id,
+                              call.message.message_id)
+        with bot.retrieve_data(call.message.chat.id) as data:
+            data["check_out"] = str(result)
+
+        bot.send_message(call.message.chat.id, '📸 Вывести результат поиска с фото?'
                          , reply_markup=question_photo_low())
-        bot.set_state(message.from_user.id, UserStateLow.photo_count, message.chat.id)
-
-        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            data['date'] = (dates[0], dates[1], days.days)
-
-    except Exception:
-        bot.send_message(message.from_user.id, 'Ошибка ввода даты.Попробуйте еще раз')
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'yes' or call.data == 'no')
@@ -85,14 +113,23 @@ def callback_inline(call: CallbackQuery) -> None:
         if call.data == 'yes':
             bot.send_message(call.message.chat.id, '✅ Введите количество фото для отображения')
         elif call.data == 'no':
+
             with bot.retrieve_data(call.message.chat.id) as data:
                 pass
+            check_in = datetime.datetime.strptime(data["check_in"], '%Y-%m-%d')
+            check_out = datetime.datetime.strptime(data["check_out"],'%Y-%m-%d')
+            all_days = check_out - check_in
+            days = str(all_days).split()
+            days = int(days[0])
+            with bot.retrieve_data(call.message.chat.id) as data:
+                data["days"] = days
+
             text = '😀 Давайте проверим введенные данные:\n' \
                    f'\nГород: {data["city_name"]}' \
                    f'\nКоличество отелей на экране: {data["hotels_count"]}' \
-                   f'\nЗаезд: {data["date"][0]}' \
-                   f'\nВыезд: {data["date"][1]}' \
-                   f'\nДней всего: {data["date"][2]}'\
+                   f'\nЗаезд: {data["check_in"]}' \
+                   f'\nВыезд: {data["check_out"]}' \
+                   f'\nДней всего: {data["days"]}'\
                    f'\n\n<b>Все верно❓</b>'
 
             bot.send_message(call.message.chat.id,
@@ -110,12 +147,21 @@ def photo_count(message: Message) -> None:
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['photo_count'] = message.text
 
+        check_in = datetime.datetime.strptime(data["check_in"], '%Y-%m-%d')
+        check_out = datetime.datetime.strptime(data["check_out"], '%Y-%m-%d')
+        all_days = check_out - check_in
+        days = str(all_days).split()
+        days = int(days[0])
+
+        with bot.retrieve_data(message.chat.id) as data:
+            data["days"] = days
+
         text = ' 😀 Давайте проверим введенные данные:\n' \
                f'\nГород: {data["city_name"]}' \
                f'\nКоличество отелей на экране: {data["hotels_count"]}' \
-               f'\nЗаезд: {data["date"][0]}' \
-               f'\nВыезд: {data["date"][1]}' \
-               f'\nДней всего: {data["date"][2]}' \
+               f'\nЗаезд: {data["check_in"]}' \
+               f'\nВыезд: {data["check_out"]}' \
+               f'\nДней всего: {data["days"]}' \
                f'\nФото штук: {data["photo_count"]}' \
                f'\n\n<b>Все верно?</b>' \
 
@@ -123,6 +169,7 @@ def photo_count(message: Message) -> None:
                          text,
                          reply_markup=accept_info_low(),
                          parse_mode='html')
+
 
     else:
         bot.send_message(message.from_user.id, 'Введите, пожалуйста, число')
@@ -154,7 +201,8 @@ def show_hotels(message: Message) -> None:
         bot.send_message(message.chat.id, '✳ Получаем информацию по отелям(2/3)...')
 
         # запрос для вывода информации по отелям с командой lowprice
-        hotels = get_hotels(city_id=city_id, search_info="PRICE", count=data["hotels_count"])
+        hotels = get_hotels(city_id=city_id, search_info="PRICE", count=data["hotels_count"],
+                            check_in=data["check_in"], check_out=data["check_out"])
         if hotels is not None:
             all_photo_list = []
             try:
@@ -174,7 +222,8 @@ def show_hotels(message: Message) -> None:
             bot.send_message(message.chat.id, '❗ К сожалению, не удалось найти информацию по отелям')
     else:
         bot.send_message(message.chat.id,
-                         '❗ К сожалению, сервис с информацией по отелям временно не работает')
+                         '❗ К сожалению, сервис с информацией по отелям временно не работает\n'
+                         'Попробуйте чуть позже')
 
 
 def print_info(message: Message, hotels: List[Tuple], all_photo_list: List[List]) -> None:
@@ -186,7 +235,7 @@ def print_info(message: Message, hotels: List[Tuple], all_photo_list: List[List]
     for i in range(int(data["hotels_count"])):
 
         # подсчет общей стоимости отеля
-        total_cost = round(int(data["date"][2]) * int(hotels[i][2][1:]), 5)
+        total_cost = round(data["days"] * int(hotels[i][2][1:]), 5)
         text = f'🏨 Название отеля: {hotels[i][1]}' \
            f'\n📍 Адрес отеля: {hotels[i][3]}' \
            f'\n✔ Расположение от центра: {hotels[i][6]}' \

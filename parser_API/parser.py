@@ -16,7 +16,7 @@ def requests_to_api(city_name: str) -> int:
     url = "https://hotels4.p.rapidapi.com/locations/v2/search"
     querystring = {"query": city_name, "locale": "ru_RU"}  # здесь указывается город
     try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
+        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
         if req.status_code == 200:
             data = json.loads(req.text)
 
@@ -27,18 +27,18 @@ def requests_to_api(city_name: str) -> int:
         print(e)
 
 
-def get_hotels(city_id: int, search_info: str, count: int, start_price=0, stop_price=100000) \
-        -> List[Tuple] or None:
+def get_hotels(city_id: int, search_info: str, count: int, check_in: str,
+               check_out: str, start_price=0, stop_price=100000) -> List[Tuple] or None:
     """Функция, для получения информации по отелям в указанном(выше) городе"""
 
     url = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": str(count),
-                   "checkIn": "2020-01-08", "checkOut":"2020-01-15", "adults1": "1",
+                   "checkIn": check_in, "checkOut": check_out, "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price),
                    "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
 
     try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
+        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
         if req.status_code == 200:
             data = json.loads(req.text)
         number = 0
@@ -101,16 +101,16 @@ def get_hotels(city_id: int, search_info: str, count: int, start_price=0, stop_p
 
 def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price: int,
                         stop_price: int, start_dist: int, stop_dist: int, bestdeal_list: List,
-                        page_num='1') -> List[Tuple] or None:
+                        check_in: str, check_out: str, page_num='1') -> List[Tuple] or None:
 
     url = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": str(city_id), "pageNumber": page_num, "pageSize": "25",
-                   "checkIn": "2020-01-08", "checkOut": "2020-01-15", "adults1": "1",
+                   "checkIn": check_in, "checkOut": check_out, "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price),
                    "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
 
     try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=10)
+        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
         if req.status_code == 200:
             data = json.loads(req.text)
         number = -1
@@ -200,7 +200,9 @@ def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price:
                                     start_dist=start_dist,
                                     stop_dist=stop_dist,
                                     bestdeal_list=bestdeal_list,
-                                    page_num=new_page,)
+                                    check_in=check_in,
+                                    check_out=check_out,
+                                    page_num=new_page)
 
         return bestdeal_list[:int(count)]
 
