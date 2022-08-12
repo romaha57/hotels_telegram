@@ -17,6 +17,7 @@ def requests_to_api(city_name: str) -> int:
     querystring = {"query": city_name, "locale": "ru_RU"}  # здесь указывается город
     try:
         req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
+
         if req.status_code == 200:
             data = json.loads(req.text)
 

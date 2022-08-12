@@ -36,7 +36,10 @@ def get_info_from_database(user_id, limit):
 
     connect = sqlite3.connect('hotels.db', check_same_thread=False)
     cursor = connect.cursor()
-    info = cursor.execute("SELECT * FROM users WHERE user_id = ? LIMIT ?", (user_id, limit))
+    select_request = """SELECT * FROM
+    (SELECT * FROM users WHERE user_id = ? ORDER BY id DESC LIMIT ?) 
+    ORDER BY id"""
+    info = cursor.execute(select_request, (user_id, limit))
 
     # Возвращаем кортежи из БД для определнного id пользователя
     return info

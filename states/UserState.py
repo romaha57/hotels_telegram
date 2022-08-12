@@ -1,7 +1,7 @@
 from telebot.handler_backends import State, StatesGroup
 
 
-class UserStateLow(StatesGroup):
+class UserState(StatesGroup):
     command = State()
     city = State()
     hotel_count = State()

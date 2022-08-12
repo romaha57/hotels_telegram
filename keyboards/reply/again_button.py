@@ -6,6 +6,6 @@ def start_again(command: str) -> ReplyKeyboardMarkup:
     если при вводе информация пользователь допустил ошибку"""
 
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
-    keyboard.add(KeyboardButton(f'/{command}'))
+    keyboard.add(KeyboardButton(f'{command}'))
 
     return keyboard
