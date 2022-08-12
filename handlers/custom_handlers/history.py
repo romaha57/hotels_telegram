@@ -6,10 +6,6 @@ from states.UserStateHistory import UserStateHistory
 
 @bot.message_handler(commands=['history'])
 def start(message: Message):
-
-    # Удаления состояния finish при переходе из других сценариев
-    bot.delete_state(message.from_user.id, message.chat.id)
-
     bot.set_state(message.from_user.id, UserStateHistory.limit, message.chat.id)
     bot.send_message(message.chat.id, 'Сколько записей истории вывести на экран?')
 
