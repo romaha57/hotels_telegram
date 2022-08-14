@@ -9,8 +9,20 @@ from keyboards.reply.all_command import all_commands
 from keyboards.reply.again_button import start_again
 from loader import bot
 from telebot.types import Message, CallbackQuery, InputMediaPhoto
-from parser_API.parser import requests_to_api, get_hotels, get_photo, get_hotels_bestdeal
+from parser_API.parser import get_city_id, get_hotels, get_photo
 from states.UserState import UserState
+
+
+def date_to_text(date: str) -> str:
+    """Функция, которая преобразовывает дату в читаемый вид текстом"""
+    month_list = ['0', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+                  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+    month = int(date[-5:-3])
+    form_date = date[-2:] + ' ' + month_list[month] + ' ' + date[:4]
+
+    return form_date
+
+
 
 
 def send_info(message: Message) -> None:
@@ -19,8 +31,8 @@ def send_info(message: Message) -> None:
 
     with bot.retrieve_data(message.chat.id) as data:
         pass
-    check_in = datetime.datetime.strptime(str(data["check_in"]), '%Y-%m-%d')
-    check_out = datetime.datetime.strptime(str(data["check_out"]), '%Y-%m-%d')
+    check_in = datetime.datetime.strptime(str(data["check_in"][0]), '%Y-%m-%d')
+    check_out = datetime.datetime.strptime(str(data["check_out"][0]), '%Y-%m-%d')
 
     # находим разницу между двумя датами
     all_days = check_out - check_in
@@ -32,8 +44,8 @@ def send_info(message: Message) -> None:
     text = '😀 Давайте проверим введенные данные:\n' \
            f'\nГород: {data["city_name"]}' \
            f'\nКоличество отелей на экране: {data["hotels_count"]}' \
-           f'\nЗаезд: {data["check_in"]}' \
-           f'\nВыезд: {data["check_out"]}' \
+           f'\nЗаезд: {data["check_in"][1]}' \
+           f'\nВыезд: {data["check_out"][1]}' \
            f'\nДней всего: {data["days"]}' \
            f'\n\n<b>Все верно❓</b>'
 
@@ -132,16 +144,18 @@ def calendar(call: CallbackQuery) -> None:
                               call.message.message_id,
                               reply_markup=key)
     elif result:
-        bot.edit_message_text(f'➡ Заезд: {result}',
+        str_check_in = date_to_text(str(result))
+
+        bot.edit_message_text(f'➡ Заезд: {str_check_in}',
                               call.message.chat.id,
                               call.message.message_id)
         with bot.retrieve_data(call.message.chat.id) as data:
-            data["check_in"] = result
+            data["check_in"] = (result, str_check_in)
 
         # создаем второй календарь для даты выезда
         calendar = get_calendar(calendar_id=2,
-                                min_date=data["check_in"],
-                                current_date=data["check_in"],
+                                min_date=data["check_in"][0],
+                                current_date=data["check_in"][0],
                                 locale='ru')
 
         bot.set_state(call.message.from_user.id, UserState.check_out, call.message.chat.id)
@@ -156,8 +170,8 @@ def calendar(call: CallbackQuery) -> None:
     with bot.retrieve_data(call.message.chat.id) as data:
         pass
     result, key, step = get_calendar(calendar_id=2,
-                                     min_date=data["check_in"],
-                                     current_date=data["check_in"],
+                                     min_date=data["check_in"][0],
+                                     current_date=data["check_in"][0],
                                      locale='ru',
                                      callback_data=call,
                                      is_process=True)
@@ -167,18 +181,20 @@ def calendar(call: CallbackQuery) -> None:
                               call.message.message_id,
                               reply_markup=key)
     elif result:
-        bot.edit_message_text(f'⬅ Выезд: {result}',
+        str_check_out = date_to_text(str(result))
+        bot.edit_message_text(f'⬅ Выезд: {str_check_out}',
                               call.message.chat.id,
                               call.message.message_id)
         with bot.retrieve_data(call.message.chat.id) as data:
-            data["check_out"] = result
+            data["check_out"] = (result, str_check_out)
 
         # если команда bestdeal, то мы устанавливаем состояние для него и
         # переходим в модуль bestdeal.py
         if data["command"] == '/bestdeal':
             bot.set_state(call.message.chat.id, UserState.prices)
             bot.send_message(call.message.chat.id,
-                         '💲 Теперь укажите диапозон цен отелей(пример: 100 - 500)')
+                             '💲 Теперь укажите диапозон цен отелей(пример: 100 - 500)')
+
         else:
             # если команда НЕ bestdeal, то идем дальше по сценарию
             bot.set_state(call.message.chat.id, UserState.photo_count)
@@ -240,7 +256,7 @@ def show_hotels(message: Message) -> None:
         pass
 
     # получаем id города
-    city_id = requests_to_api(data["city_name"])
+    city_id = get_city_id(data["city_name"])
     if city_id is not None:
 
         # если id найдено, идем дальше
@@ -251,29 +267,28 @@ def show_hotels(message: Message) -> None:
             hotels = get_hotels(city_id=city_id,
                                 search_info="PRICE",
                                 count=data["hotels_count"],
-                                check_in=str(data["check_in"]),
-                                check_out=str(data["check_out"]))
+                                check_in=str(data["check_in"][0]),
+                                check_out=str(data["check_out"][0]))
 
         # запрос для вывода информации по отелям с командой highprice
         elif data["command"] == '/highprice':
             hotels = get_hotels(city_id=city_id,
                                 search_info="PRICE_HIGHEST_FIRST",
                                 count=data["hotels_count"],
-                                check_in=str(data["check_in"]),
-                                check_out=str(data["check_out"]))
+                                check_in=str(data["check_in"][0]),
+                                check_out=str(data["check_out"][0]))
 
         # запрос для вывода информации по отелям с командой bestdeal
         else:
-            hotels = get_hotels_bestdeal(city_id=city_id,
-                                         search_info="DISTANCE_FROM_LANDMARK",
-                                         count=data["hotels_count"],
-                                         start_price=data["prices"][0],
-                                         stop_price=data["prices"][1],
-                                         start_dist=data["dist_range"][0],
-                                         stop_dist=data["dist_range"][1],
-                                         bestdeal_list=[],
-                                         check_in=str(data["check_in"]),
-                                         check_out=str(data["check_out"]))
+            hotels = get_hotels(city_id=city_id,
+                                search_info="DISTANCE_FROM_LANDMARK",
+                                count=data["hotels_count"],
+                                start_price=data["prices"][0],
+                                stop_price=data["prices"][1],
+                                dist=data["dist_range"],
+                                check_in=str(data["check_in"][0]),
+                                check_out=str(data["check_out"][0]),
+                                command=data["command"])
 
         # если отели спарсены успешно
         if hotels is not None:
@@ -287,13 +302,14 @@ def show_hotels(message: Message) -> None:
 
         # если отели НЕ были получены
         else:
-            bot.send_message(message.chat.id, '❗ К сожалению, не удалось найти информацию по отелям')
+            bot.send_message(message.chat.id,
+                             '❗ К сожалению, не удалось найти информацию по отелям')
     else:
 
         # если id города не найдено, то выводим сообщение
         bot.send_message(message.chat.id,
-                         '❗ К сожалению, сервис с информацией по отелям не отвечает\n'
-                         'Попробуйте еще раз')
+                         f'❗ К сожалению, '
+                         f'данные по вашему городу {data["city_name"]} не были найдены')
 
 
 def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] = None) -> None:
@@ -303,21 +319,26 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
         pass
     bot.send_message(message.chat.id, 'Результат поиска:')
     for i in range(int(data["hotels_count"])):
-
-        # подсчет общей стоимости отеля
-        total_cost = round(data["days"] * float(hotels[i][2][1:]), 5)
-        text = f'🏨 Название отеля: {hotels[i][1]}' \
-               f'\n📍 Адрес отеля: {hotels[i][3]}' \
-               f'\n✔ Расположение от центра: {hotels[i][6]}' \
-               f'\n💵 Цена за сутки: {hotels[i][2]}' \
-               f'\n💰 Цена всего: {total_cost}$' \
-               f'\n✨ Количество звезд отеля: {hotels[i][5]}' \
-               f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
+        try:
+            # подсчет общей стоимости отеля
+            total_cost = round(data["days"] * float(hotels[i][2][1:]), 5)
+            text = f'🏨 Название отеля: {hotels[i][1]}'\
+                   f'\n📍 Адрес отеля: {hotels[i][3]}' \
+                   f'\n✔ Расположение от центра: {hotels[i][6]}' \
+                   f'\n💵 Цена за сутки: {hotels[i][2][1:]}{hotels[i][2][0]}' \
+                   f'\n💰 Цена всего: {total_cost}$' \
+                   f'\n✨ Количество звезд отеля: {hotels[i][5]}' \
+                   f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
         # Отправка фото
-        bot.send_message(message.chat.id,
-                         text,
-                         reply_markup=geo(hotels[i][7], hotels[i][8]))
+            bot.send_message(message.chat.id, text,
+                             reply_markup=geo(hotels[i][7], hotels[i][8]))
+
+        # ловим исключение, которое возникнет в результате того, что отелей по заданному
+        # расстоянию от центра будет меньше, указанного пользователем
+        except IndexError:
+            bot.send_message(message.chat.id,
+                             'Отелей в заданном расстоянии от центра больше не удалось найти')
 
         if all_photo_list is not None:
             bot.send_media_group(message.chat.id,
@@ -329,9 +350,6 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                                   for i_photo in all_photo_list[i]])
 
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
-
-    # Удаление списка отеля(думаю так должно быстрее работать и не занимать лишнюю память)
-    del hotels
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('geo'))

@@ -20,9 +20,6 @@ def show_history(message: Message):
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data["limit"] = message.text
 
-        bot.set_state(message.from_user.id, UserStateHistory.finish, message.chat.id)
-
-        bot.send_message(message.from_user.id, 'Подгружаем историю поиска...')
         info = get_info_from_database(message.from_user.id, data["limit"])
 
         # Берем инфомармацию по отелям и делаем читабельный вид

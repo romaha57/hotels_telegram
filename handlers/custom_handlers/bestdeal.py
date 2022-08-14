@@ -13,8 +13,10 @@ def set_prices(message: Message) -> None:
         start_price = int(prices[0].strip())
         stop_price = int(prices[1].strip())
 
-        bot.send_message(message.chat.id,
-                         '🔛 Отлично, теперь укажите диапазон расстояния от центра(пример: 0.5 - 5)')
+        text = '🔛 Отлично, теперь укажите максимальную желаемую удаленность от центра' \
+               '(в км, например 0.5):'
+
+        bot.send_message(message.chat.id, text)
         bot.set_state(message.from_user.id, UserState.distances, message.chat.id)
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
@@ -29,17 +31,15 @@ def date(message: Message) -> None:
     """Функция, которая проверяет диапазон расстояния от центра на корректность ввода и
     устанавливает состояние на photo_count, чтобы вернуться на основной сценарий"""
 
-    try:
-        dists = message.text.split('-')
-        start_dist = float(dists[0].strip())
-        stop_dist = float(dists[1].strip())
+    if not message.text.isalpha():
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            data['dist_range'] = (start_dist, stop_dist)
+            data['dist_range'] = message.text
 
         bot.set_state(message.chat.id, UserState.photo_count)
         bot.send_message(message.chat.id, '📸 Вывести результат поиска с фото?',
-                         reply_markup=question_photo())
+                             reply_markup=question_photo())
 
-    except TypeError:
-        bot.send_message(message.chat.id, 'Ошибка ввода.Попробуйте еще раз')
+    else:
+        bot.send_message(message.chat.id, 'Ошибка ввода, введите число')
+

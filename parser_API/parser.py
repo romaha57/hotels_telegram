@@ -1,7 +1,7 @@
 import requests
 import json
 from config_data import config
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 
 HEADARS = {
@@ -10,233 +10,168 @@ HEADARS = {
 }
 
 
-def requests_to_api(city_name: str) -> int:
+def requests_to_api(url: str, querystring: (str, Dict)) -> (Dict, None):
+    """Функция, для подключения к API rapidapi.com"""
+
+    req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
+    if req.status_code == 200:
+        data = json.loads(req.text)
+
+        return data
+    else:
+        return None
+
+
+def get_city_id(city_name: str) -> (str, None):
     """Функция, для get запроса и получение информации по отелям в указанном городе"""
 
-    url = "https://hotels4.p.rapidapi.com/locations/v2/search"
-    querystring = {"query": city_name, "locale": "ru_RU"}  # здесь указывается город
-    try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
+    data = requests_to_api(url="https://hotels4.p.rapidapi.com/locations/v2/search",
+                           querystring={"query": city_name, "locale": "ru_RU"})
 
-        if req.status_code == 200:
-            data = json.loads(req.text)
-
-            # возвращаем id города
-            return data["suggestions"][0]["entities"][0]["destinationId"]
-
-    except Exception as e:
-        print(e)
+    # возвращаем id города или None, если id не найден
+    if data is not None:
+        return data.get("suggestions", {})[0].get("entities", {})[0].get("destinationId")
 
 
-def get_hotels(city_id: int, search_info: str, count: int, check_in: str,
-               check_out: str, start_price=0, stop_price=100000) -> List[Tuple] or None:
+def get_hotels(city_id: str, search_info: str, count: int, check_in: str,
+               check_out: str, start_price=0, stop_price=100000,
+               dist=0.0, command=None) -> (List[Tuple], None):
+
     """Функция, для получения информации по отелям в указанном(выше) городе"""
 
-    url = "https://hotels4.p.rapidapi.com/properties/list"
     querystring = {"destinationId": str(city_id), "pageNumber": "1", "pageSize": str(count),
                    "checkIn": check_in, "checkOut": check_out, "adults1": "1",
                    "priceMin": str(start_price), "priceMax": str(stop_price),
                    "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
 
-    try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
-        if req.status_code == 200:
-            data = json.loads(req.text)
+    data = requests_to_api(url="https://hotels4.p.rapidapi.com/properties/list",
+                           querystring=querystring)
+
+    if data is not None:
         number = 0
         # создаем пустой список, который будем наполнять спарсенными отелями
         hotels = []
-        for elem in data["data"]["body"]["searchResults"]["results"]:
-            try:
-                hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
-            except KeyError:
+        for _ in data["data"]["body"]["searchResults"]["results"]:
+            hotel_dist = data.get("data", {}
+                                  ).get("body", {}
+                                        ).get("searchResults", {}
+                                              ).get("results", {}
+                                                    )[number].get("landmarks", {}
+                                                                  )[0].get(
+                "distance", 'расстояние от центра неизвестно')
 
-                # Обработка ошибки, если не найдем ключ и вставка значения по умолчанию
-                hotel_name = 'Название отеля отсутствует'
-            try:
-                hotel_id = data["data"]["body"]["searchResults"]["results"][number]["id"]
-            except KeyError:
-                hotel_id = '0'
-            try:
-                hotel_price = data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"]["current"]
+            if command == '/bestdeal':
+
+                # заменяем запятую на точку, чтобы перевести число в float
+                hotel_dist = hotel_dist.replace(',', '.')
+                if float(hotel_dist[:3]) > float(dist):
+                    continue
+
+            hotel_name = data.get("data", {}
+                                  ).get("body", {}
+                                        ).get("searchResults", {}
+                                              ).get("results", {}
+                                                    )[number].get(
+                "name", 'названия нет')
+
+            hotel_id = data.get("data", {}
+                                ).get("body", {}
+                                      ).get("searchResults", {}
+                                            ).get("results", {}
+                                                  )[number].get(
+                "id", '0')
+
+            hotel_price = data.get("data", {}
+                                   ).get("body", {}
+                                         ).get("searchResults", {}
+                                               ).get("results", {}
+                                                     )[number].get("ratePlan", {}
+                                                                   ).get("price", {}
+                                                                         ).get(
+                "current", 'Цена неизвестна')
+
+            # заменяем точку на _, чтобы при ценах в переводе в float, например 3.555,
+            # он представлял как 3555
+
+            hotel_price = hotel_price.replace('.', '_')
+            if hotel_price != 'цена неизвестна':
                 hotel_price = str(hotel_price).replace(',', '.')
-            except KeyError:
-                hotel_price = 'Цена отсутствует'
-            try:
-                hotel_address = data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
-            except KeyError:
-                hotel_address = 'Адрес доступен по кнопке ниже'
-            try:
-                hotel_rating = data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
-            except KeyError:
-                hotel_rating = 'Рейтинг отеля отсутствует'
-            try:
-                hotel_star = data["data"]["body"]["searchResults"]["results"][number]["starRating"]
-            except KeyError:
-                hotel_star = 'Количество звезд у отеля неизвестно'
-            try:
-                hotel_dist = data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
-            except KeyError:
-                hotel_dist = 'неизвестно'
-            try:
-                hotel_lat = data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lat"]
-            except KeyError:
-                hotel_lat = 'неизвестно'
-            try:
-                hotel_lon = data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lon"]
-            except KeyError:
-                hotel_lon = 'неизвестно'
 
+            hotel_address = data.get("data", {}
+                                     ).get("body", {}
+                                           ).get("searchResults", {}
+                                                 ).get("results", {}
+                                                       )[number].get("address", {}
+                                                                     ).get(
+                "streetAddress", 'Адрес отсутствует,'
+                                 'но вы можете посмотреть расположение на карте(по кнопке ниже)')
+
+            hotel_rating = data.get("data", {}
+                                    ).get("body", {}
+                                          ).get("searchResults", {}
+                                                ).get("results", {}
+                                                      )[number].get("guestReviews", {}
+                                                                    ).get(
+                "rating", 'Рейтинг отеля неизвестен')
+
+            hotel_star = data.get("data", {}
+                                  ).get("body", {}
+                                        ).get("searchResults", {}
+                                              ).get("results", {}
+                                                    )[number].get(
+                "starRating", 'Количество звезд у отеля не известно')
+
+            hotel_lat = data.get("data", {}
+                                 ).get("body", {}
+                                       ).get("searchResults", {}
+                                             ).get("results", {}
+                                                   )[number].get(
+                "coordinate", {}).get("lat", 'неизвестно')
+
+            hotel_lon = data.get("data", {}
+                                 ).get("body", {}
+                                       ).get("searchResults", {}
+                                             ).get("results", {}
+                                                   )[number].get("coordinate", {}
+                                                                 ).get(
+                "lon", 'неизвестно')
+
+            # создаем кортеж характеристик для каждого отеля и добавляем в общий список отелей
             new_tuple = (
-                hotel_id, hotel_name, hotel_price, hotel_address, hotel_rating,
-                hotel_star, hotel_dist, hotel_lat, hotel_lon
-            )
+                    hotel_id, hotel_name, hotel_price, hotel_address, hotel_rating,
+                    hotel_star, hotel_dist, hotel_lat, hotel_lon
+                )
             hotels.append(new_tuple)
             number += 1
 
         # возвращаем список отелей
         return hotels
 
-    except Exception:
-        return None
-
-
-def get_hotels_bestdeal(city_id: int, search_info: str, count: int, start_price: int,
-                        stop_price: int, start_dist: int, stop_dist: int, bestdeal_list: List,
-                        check_in: str, check_out: str, page_num='1') -> List[Tuple] or None:
-
-    url = "https://hotels4.p.rapidapi.com/properties/list"
-    querystring = {"destinationId": str(city_id), "pageNumber": page_num, "pageSize": "25",
-                   "checkIn": check_in, "checkOut": check_out, "adults1": "1",
-                   "priceMin": str(start_price), "priceMax": str(stop_price),
-                   "sortOrder": search_info, "locale": "ru_RU", "currency": "USD"}
-
-    try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
-        if req.status_code == 200:
-            data = json.loads(req.text)
-        number = -1
-        while True:
-            if len(bestdeal_list) > float(count):
-                break
-            for elem in data["data"]["body"]["searchResults"]["results"]:
-                number += 1
-                try:
-                    hotel_dist = \
-                        data["data"]["body"]["searchResults"]["results"][number]["landmarks"][0]["distance"]
-                    hotel_dist = str(hotel_dist).replace(',', '.')
-
-                    # Проверка на вхождение в диапозоне расстояния от центра, указанный пользователем
-                    if float(hotel_dist[:3]) < start_dist or float(hotel_dist[:3]) > stop_dist:
-                        continue
-                except KeyError:
-                    hotel_dist = 'неизвестно'
-
-                try:
-                    hotel_name = data["data"]["body"]["searchResults"]["results"][number]["name"]
-                except KeyError:
-                    hotel_name = 'Название отеля отсутствует'
-
-                try:
-                    hotel_id = data["data"]["body"]["searchResults"]["results"][number]["id"]
-                except KeyError:
-                    hotel_id = '0'
-
-                try:
-                    hotel_price = \
-                        data["data"]["body"]["searchResults"]["results"][number]["ratePlan"]["price"][
-                            "current"]
-                    hotel_price = str(hotel_price).replace(',', '.')
-                except KeyError:
-                    hotel_price = 'Цена отсутствует'
-
-                try:
-                    hotel_address = \
-                        data["data"]["body"]["searchResults"]["results"][number]["address"]["streetAddress"]
-                except KeyError:
-                    hotel_address = 'Адрес доступен по кнопке ниже'
-
-                try:
-                    hotel_rating = \
-                        data["data"]["body"]["searchResults"]["results"][number]["guestReviews"]["rating"]
-                except KeyError:
-                    hotel_rating = 'Рейтинг отеля отсутствует'
-
-                try:
-                    hotel_star = \
-                        data["data"]["body"]["searchResults"]["results"][number]["starRating"]
-                except KeyError:
-                    hotel_star = 'Количество звезд у отеля неизвестно'
-                try:
-                    hotel_lat = \
-                    data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lat"]
-
-                except KeyError:
-                    hotel_lat = 'неизвестно'
-
-                try:
-                    hotel_lon = \
-                    data["data"]["body"]["searchResults"]["results"][number]["coordinate"]["lon"]
-
-                except KeyError:
-                    hotel_lon = 'неизвестно'
-
-                new_tuple = (
-                    hotel_id, hotel_name, hotel_price,
-                    hotel_address, hotel_rating, hotel_star, hotel_dist, hotel_lat, hotel_lon
-                    )
-
-                if hotel_id != '0':
-                    bestdeal_list.append(new_tuple)
-                    continue
-            else:
-                # Переход на следующую страницу для парсинга
-                new_page = int(page_num)
-                new_page += 1
-                new_page = str(new_page)
-                get_hotels_bestdeal(city_id=city_id,
-                                    search_info="DISTANCE_FROM_LANDMARK",
-                                    count=count,
-                                    start_price=start_price,
-                                    stop_price=stop_price,
-                                    start_dist=start_dist,
-                                    stop_dist=stop_dist,
-                                    bestdeal_list=bestdeal_list,
-                                    check_in=check_in,
-                                    check_out=check_out,
-                                    page_num=new_page)
-
-        return bestdeal_list[:int(count)]
-
-    except Exception as e:
-        print(e)
+    else:
         return None
 
 
 def get_photo(hotel_id: int, photo_count: str):
     """Функция для получения фото по id отеля"""
 
-    url = "https://hotels4.p.rapidapi.com/properties/get-hotel-photos"
-    querystring = {"id": hotel_id}
+    data = requests_to_api(url="https://hotels4.p.rapidapi.com/properties/get-hotel-photos",
+                           querystring={"id": hotel_id})
 
-    try:
-        req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
-        if req.status_code == 200:
-            data = json.loads(req.text)
+    if data is not None:
+        photo_list = []
+        for photo in data["hotelImages"]:
 
-            photo_list = []
-            try:
-                for photo in data["hotelImages"]:
+            # Проверяем количество спарсенных фото
+            if len(photo_list) == int(photo_count):
+                break
 
-                    # Проверяем колиечство спарсенных фото
-                    if len(photo_list) == int(photo_count):
-                        break
-                    # превращаем строку в ссылку на фото и добавляем в список
-                    temp = photo["baseUrl"][:-11] + '.jpg'
-                    photo_list.append(temp)
-                return photo_list
+            # превращаем строку в ссылку на фото и добавляем в список
+            temp = photo["baseUrl"][:-11] + '.jpg'
+            photo_list.append(temp)
 
-            except Exception:
-                return None
+        return photo_list
 
-    except Exception as e:
-        print(e, 'ошибка')
+
+
+
+
