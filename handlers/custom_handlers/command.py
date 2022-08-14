@@ -1,6 +1,8 @@
 import datetime
 from typing import List, Tuple
 from telegram_bot_calendar import DetailedTelegramCalendar
+
+from database.my_db import add_in_db
 from keyboards.inline.accept_info import accept_info
 from keyboards.inline.calendar import get_calendar
 from keyboards.inline.geo import geo
@@ -15,14 +17,13 @@ from states.UserState import UserState
 
 def date_to_text(date: str) -> str:
     """Функция, которая преобразовывает дату в читаемый вид текстом"""
+
     month_list = ['0', 'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
                   'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
     month = int(date[-5:-3])
     form_date = date[-2:] + ' ' + month_list[month] + ' ' + date[:4]
 
     return form_date
-
-
 
 
 def send_info(message: Message) -> None:
@@ -38,6 +39,7 @@ def send_info(message: Message) -> None:
     all_days = check_out - check_in
     days = str(all_days).split()
     days = int(days[0])
+
     with bot.retrieve_data(message.chat.id) as data:
         data["days"] = days
 
@@ -74,6 +76,14 @@ def photo(message: Message, hotels: List[Tuple]) -> List[List]:
             all_photo_list.append(['фото не найдено'])
 
     return all_photo_list
+
+
+def send_info_for_db(user_id: int, command: str, hotels: List[Tuple]) -> None:
+    """Функция, для формирования данных для дальнейшей записи в БД"""
+
+    date = str(datetime.datetime.now())
+    users_info = (user_id, date[:-7], command[1:])
+    add_in_db(users_info=users_info, hotels=hotels)
 
 
 @bot.message_handler(commands=['lowprice', 'highprice', 'bestdeal'])
@@ -349,6 +359,11 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                                      f'Для отеля {hotels[i][1]} не удалось найти фото')
                                   for i_photo in all_photo_list[i]])
 
+    # вызываем функцию для формирования информации для записи в бд
+    send_info_for_db(user_id=message.chat.id,
+                     command=data["command"],
+                     hotels=hotels)
+
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
 
 
@@ -362,3 +377,5 @@ def callback_func(call: CallbackQuery) -> None:
         lon = float(geo_data[2])
         if call.data:
             bot.send_location(call.message.chat.id, latitude=lat, longitude=lon)
+
+

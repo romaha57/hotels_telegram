@@ -1,7 +1,7 @@
 from telebot import types
 
 
-def geo(lat, lon) -> types.InlineKeyboardMarkup:
+def geo(lat: int, lon: int) -> types.InlineKeyboardMarkup:
     """Функция, которая выводит кнопку для отображения геолокации"""
 
     keyboard = types.InlineKeyboardMarkup()
