@@ -1,11 +1,10 @@
 import datetime
 from typing import List, Tuple
 from telegram_bot_calendar import DetailedTelegramCalendar
-
-from database.my_db import add_in_db
+from database.my_db import add_in_db, add_in_favorite
 from keyboards.inline.accept_info import accept_info
 from keyboards.inline.calendar import get_calendar
-from keyboards.inline.geo import geo
+from keyboards.inline.geo_favorite import geo_favorite
 from keyboards.inline.question_photo import question_photo
 from keyboards.reply.all_command import all_commands
 from keyboards.reply.again_button import start_again
@@ -79,7 +78,6 @@ def photo(message: Message, hotels: List[Tuple]) -> List[List]:
 
 
 def send_info_for_db(user_id: int, command: str, hotels: List[Tuple]) -> None:
-    """Функция, для формирования данных для дальнейшей записи в БД"""
 
     date = str(datetime.datetime.now())
     users_info = (user_id, date[:-7], command[1:])
@@ -340,9 +338,8 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                    f'\n✨ Количество звезд отеля: {hotels[i][5]}' \
                    f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
-        # Отправка фото
             bot.send_message(message.chat.id, text,
-                             reply_markup=geo(hotels[i][7], hotels[i][8]))
+                             reply_markup=geo_favorite(hotels[i][7], hotels[i][8], hotels[i][1]))
 
         # ловим исключение, которое возникнет в результате того, что отелей по заданному
         # расстоянию от центра будет меньше, указанного пользователем
@@ -358,11 +355,10 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                                      message.chat.id,
                                      f'Для отеля {hotels[i][1]} не удалось найти фото')
                                   for i_photo in all_photo_list[i]])
-
     # вызываем функцию для формирования информации для записи в бд
-    send_info_for_db(user_id=message.chat.id,
-                     command=data["command"],
-                     hotels=hotels)
+    send_info_for_db(hotels=hotels,
+                             user_id=message.chat.id,
+                             command=data["command"])
 
     bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
 
@@ -372,10 +368,27 @@ def callback_func(call: CallbackQuery) -> None:
     """Обработчик inline-кнопок для вывода геопозиции """
 
     if call.message:
+
+        # преобразовываем данные, которые мы передели через callback_data
         geo_data = call.data.split('/')
         lat = float(geo_data[1])
         lon = float(geo_data[2])
         if call.data:
             bot.send_location(call.message.chat.id, latitude=lat, longitude=lon)
+
+
+@bot.callback_query_handler(func=lambda call: call.data.startswith('favorite'))
+def callback_func(call: CallbackQuery) -> None:
+    """Обработчик inline-кнопок для добавления в избранное"""
+
+    if call.message:
+        info = call.data.split('/')
+        hotel_name = info[1]
+        add_in_favorite(user_id=call.from_user.id ,hotel_name=hotel_name)
+        bot.send_message(call.message.chat.id, f'Отель {hotel_name} добавлен в избранное')
+
+
+
+
 
 

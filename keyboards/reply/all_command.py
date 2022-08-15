@@ -10,6 +10,7 @@ def all_commands() -> ReplyKeyboardMarkup:
     bestdeal = KeyboardButton('/bestdeal')
     history = KeyboardButton('/history')
     help = KeyboardButton('/help')
-    keyboard.add(lowprice, highprice, bestdeal, history, help)
+    favorite = KeyboardButton('/favorite')
+    keyboard.add(lowprice, highprice, bestdeal, history, help, favorite)
 
     return keyboard
