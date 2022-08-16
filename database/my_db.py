@@ -83,14 +83,18 @@ def create_table_favorite() -> None:
                         ''')
 
 
-def add_in_favorite(user_id: int, hotel_name: str) -> None:
+def add_in_favorite(user_id: int, hotel: str) -> None:
     """Функция, которая добавляем отель в избранное """
 
+    # преобразовываем кортеж в строку для записи в БД и разделяем характеристики отеля знаком %
+    hotel_str = ''
+    for element in hotel:
+        hotel_str += str(element) + '%'
     create_table_favorite()
     with sqlite3.connect("hotels.db") as connect:
         cursor = connect.cursor()
         cursor.execute("""INSERT INTO favorite(user_id, hotel) 
-                    VALUES(?, ?)""", (user_id, hotel_name))
+                    VALUES(?, ?)""", (user_id, hotel_str))
 
 
 def get_favorite(user_id: int, limit: str) -> List:
@@ -113,5 +117,3 @@ def delete_from_favorite(id_string):
     with sqlite3.connect("hotels.db") as connect:
         cursor = connect.cursor()
         cursor.execute("DELETE from favorite WHERE id = ?", (id_string,))
-
-

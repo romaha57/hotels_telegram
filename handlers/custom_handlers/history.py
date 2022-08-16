@@ -13,6 +13,7 @@ def start(message: Message) -> None:
     bot.set_state(message.from_user.id, UserStateHistory.command, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["command"] = message.text
+    bot.delete_message(message.chat.id, message_id=data["msg_id_all_func"])
 
     bot.set_state(message.from_user.id, UserStateHistory.limit, message.chat.id)
     if data["command"] == '/history':
@@ -36,7 +37,6 @@ def show_history(message: Message) -> None:
             # если команда /history
             info = get_info_from_database(message.from_user.id, data["limit"])
             if info:
-
                 # Берем информацию по отелям и делаем читабельный вид
                 for element in info:
                     # Преобразовываем записи отелей из БД в отдельные элементы
@@ -89,8 +89,15 @@ def show_history(message: Message) -> None:
             # если данные найдены:
             if info:
                 for elem in info:
-                    hotel_name = elem[2]
-                    msg = bot.send_message(message.chat.id, f'Название отеля: {hotel_name}')
+                    x = elem[2].split('%')
+                    text = f'\n\nНазвание: {x[1]}' \
+                           f'\nЦена за сутки: {x[2]}' \
+                           f'\nАдрес отеля: {x[3]}' \
+                           f'\nРейтинг отеля: {x[4]}' \
+                           f'\nКоличество звезд: {x[5]}' \
+                           f'\nРасстояние от центра: {x[6]}'
+
+                    msg = bot.send_message(message.chat.id, text)
 
                     bot.send_message(message.chat.id, '♦ Для удаления записи нажмите кнопку',
                                      reply_markup=delete_history(str(elem[0]),
@@ -132,10 +139,10 @@ def callback_func(call: CallbackQuery) -> None:
 
 @bot.callback_query_handler(func=lambda call: call.data == 'clean_history')
 def clean_history(call: CallbackQuery) -> None:
+    """Обработчик inline-кнопок для полного удаления истории поиска"""
+
     if call.message:
         count_str = clean_table()
         bot.send_message(call.message.chat.id, f'Удалено {count_str} записей')
         bot.send_message(call.message.chat.id, 'Больше записей в истории нет',
                          reply_markup=all_commands())
-
-

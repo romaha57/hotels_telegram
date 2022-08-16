@@ -14,6 +14,7 @@ def requests_to_api(url: str, querystring: (str, Dict)) -> (Dict, None):
     """Функция, для подключения к API rapidapi.com"""
 
     req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
+    print(req.status_code)
     if req.status_code == 200:
         data = json.loads(req.text)
 
@@ -30,7 +31,13 @@ def get_city_id(city_name: str) -> (str, None):
 
     # возвращаем id города или None, если id не найден
     if data is not None:
-        return data.get("suggestions", {})[0].get("entities", {})[0].get("destinationId")
+        try:
+            return data.get("suggestions", {})[0].get("entities", {})[0].get("destinationId")
+        # почему-то иногда выдает ошибку и не находит id города
+        except AttributeError:
+            return None
+    else:
+        return None
 
 
 def get_hotels(city_id: str, search_info: str, count: int, check_in: str,
