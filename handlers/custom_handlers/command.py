@@ -4,7 +4,7 @@ from telegram_bot_calendar import DetailedTelegramCalendar
 from database.my_db import add_in_db, add_in_favorite
 from keyboards.inline.accept_info import accept_info
 from keyboards.inline.calendar import get_calendar
-from keyboards.inline.geo_favorite import geo_favorite
+from keyboards.inline.geo_favorite_url import geo_favorite_url
 from keyboards.inline.question_photo import question_photo
 from keyboards.reply.all_command import all_commands
 from keyboards.reply.again_button import start_again
@@ -432,10 +432,11 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                    f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
             bot.send_message(message.chat.id, text,
-                             reply_markup=geo_favorite(lat=hotels[i][7],
-                                                       lon=hotels[i][8],
-                                                       hotels=hotels[i][1],
-                                                       city_name=data["city_name"]))
+                             reply_markup=geo_favorite_url(lat=hotels[i][7],
+                                                           lon=hotels[i][8],
+                                                           hotels=hotels[i][1],
+                                                           city_name=data["city_name"],
+                                                           hotel_id=hotels[i][0]))
 
         # ловим исключение, которое возникнет в результате того, что отелей по заданному
         # расстоянию от центра будет меньше, указанного пользователем
@@ -503,3 +504,6 @@ def callback_func(call: CallbackQuery) -> None:
 
                 bot.send_message(call.message.chat.id,
                                  f'Отель {data["hotel"][i][1]} добавлен в избранное')
+
+
+
