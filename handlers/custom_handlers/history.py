@@ -13,7 +13,6 @@ def start(message: Message) -> None:
     bot.set_state(message.from_user.id, UserStateHistory.command, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data["command"] = message.text
-    bot.delete_message(message.chat.id, message_id=data["msg_id_all_func"])
 
     bot.set_state(message.from_user.id, UserStateHistory.limit, message.chat.id)
     if data["command"] == '/history':
@@ -40,9 +39,9 @@ def show_history(message: Message) -> None:
                 # Берем информацию по отелям и делаем читабельный вид
                 for element in info:
                     # Преобразовываем записи отелей из БД в отдельные элементы
-                    x = element[4].split('\t\t')
+                    hotel = element[5].split('\t\t')
                     hotels = ''
-                    for el in x:
+                    for el in hotel:
                         y = el.split('%')
                         try:
                             text = f'\n\nНазвание: {y[1]}' \
@@ -59,6 +58,7 @@ def show_history(message: Message) -> None:
 
                     text = f'\n<b>Дата и время:</b> {element[2]}' \
                            f'\n\n<b>Команда:</b> {element[3]}' \
+                           f'\n\n<b>Город:</b> {element[4]}'\
                            f'\n\n<b>Отели:</b> \n{hotels}'
                     msg = bot.send_message(message.chat.id,
                                            text,
@@ -89,8 +89,9 @@ def show_history(message: Message) -> None:
             # если данные найдены:
             if info:
                 for elem in info:
-                    x = elem[2].split('%')
-                    text = f'\n\nНазвание: {x[1]}' \
+                    x = elem[3].split('%')
+                    text = f'\n\nГород: {elem[2]}' \
+                           f'\nНазвание: {x[1]}' \
                            f'\nЦена за сутки: {x[2]}' \
                            f'\nАдрес отеля: {x[3]}' \
                            f'\nРейтинг отеля: {x[4]}' \

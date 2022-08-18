@@ -12,6 +12,7 @@ def create_db_hotels() -> None:
                         user_id INT,
                         date TEXT,
                         command TEXT,
+                        city TEXT,
                         hotels TEXT)
                     ''')
 
@@ -32,8 +33,8 @@ def add_in_db(users_info: Tuple, hotels: List[Tuple]) -> None:
     create_db_hotels()
     with sqlite3.connect("hotels.db") as connect:
         cursor = connect.cursor()
-        cursor.execute("""INSERT INTO users(user_id, date, command, hotels) 
-                    VALUES(?, ?, ?, ?)""", users_info)
+        cursor.execute("""INSERT INTO users(user_id, date, command, city, hotels) 
+                    VALUES(?, ?, ?, ?, ?)""", users_info)
 
 
 def get_info_from_database(user_id: int, limit: str) -> List:
@@ -79,11 +80,12 @@ def create_table_favorite() -> None:
         cursor.execute('''CREATE TABLE IF NOT EXISTS favorite (
                             id INTEGER PRIMARY KEY AUTOINCREMENT,
                             user_id INT,
+                            city TEXT,
                             hotel TEXT)
                         ''')
 
 
-def add_in_favorite(user_id: int, hotel: str) -> None:
+def add_in_favorite(user_id: int, hotel: str, city_name: str) -> None:
     """Функция, которая добавляем отель в избранное """
 
     # преобразовываем кортеж в строку для записи в БД и разделяем характеристики отеля знаком %
@@ -93,8 +95,8 @@ def add_in_favorite(user_id: int, hotel: str) -> None:
     create_table_favorite()
     with sqlite3.connect("hotels.db") as connect:
         cursor = connect.cursor()
-        cursor.execute("""INSERT INTO favorite(user_id, hotel) 
-                    VALUES(?, ?)""", (user_id, hotel_str))
+        cursor.execute("""INSERT INTO favorite(user_id, city, hotel) 
+                    VALUES(?, ?, ?)""", (user_id, city_name, hotel_str))
 
 
 def get_favorite(user_id: int, limit: str) -> List:

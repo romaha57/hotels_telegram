@@ -14,7 +14,6 @@ def requests_to_api(url: str, querystring: (str, Dict)) -> (Dict, None):
     """Функция, для подключения к API rapidapi.com"""
 
     req = requests.get(url=url, headers=HEADARS, params=querystring, timeout=20)
-    print(req.status_code)
     if req.status_code == 200:
         data = json.loads(req.text)
 
@@ -110,8 +109,7 @@ def get_hotels(city_id: str, search_info: str, count: int, check_in: str,
                                                  ).get("results", {}
                                                        )[number].get("address", {}
                                                                      ).get(
-                "streetAddress", 'Адрес отсутствует,'
-                                 'но вы можете посмотреть расположение на карте(по кнопке ниже)')
+                "streetAddress", 'Адрес отсутствует,')
 
             hotel_rating = data.get("data", {}
                                     ).get("body", {}
@@ -177,8 +175,3 @@ def get_photo(hotel_id: int, photo_count: str):
             photo_list.append(temp)
 
         return photo_list
-
-
-
-
-

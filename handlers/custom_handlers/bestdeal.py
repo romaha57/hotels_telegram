@@ -21,13 +21,13 @@ def set_prices(message: Message) -> None:
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['prices'] = (start_price, stop_price)
-            data["msg_id_dist"] = msg.message_id
-            data["msg_id_price_range2"] = message.message_id
+            data["msg_id"]["msg_id_dist"] = msg.message_id
+            data["msg_id"]["msg_id_price_range2"] = message.message_id
 
     except TypeError:
         msg = bot.send_message(message.chat.id, 'Некорректный ввод.Попробуйте еще раз')
         with bot.retrieve_data(message.chat.id) as data:
-            data["msg_id_mistake4"] = msg.message_id
+            data["msg_id"]["msg_id_mistake4"] = msg.message_id
 
 
 @bot.message_handler(state=UserState.distances)
@@ -39,15 +39,14 @@ def date(message: Message) -> None:
 
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['dist_range'] = message.text
-            data["msg_id_dist2"] = message.message_id
+            data["msg_id"]["msg_id_dist2"] = message.message_id
 
         bot.set_state(message.chat.id, UserState.photo_count)
         msg = bot.send_message(message.chat.id, '📸 Вывести результат поиска с фото?',
                                reply_markup=question_photo())
-        data["msg_id_photo_question2"] = msg.message_id
+        data["msg_id"]["msg_id_photo_question2"] = msg.message_id
 
     else:
         msg = bot.send_message(message.chat.id, 'Ошибка ввода, введите число')
         with bot.retrieve_data(message.chat.id) as data:
-            data["msg_id_mistake5"] = msg.message_id
-
+            data["msg_id"]["msg_id_mistake5"] = msg.message_id

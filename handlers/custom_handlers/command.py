@@ -16,6 +16,7 @@ from states.UserState import UserState
 
 def check_key(key, dict1):
     """Функция, которая проверяет наличие ключа в словаре"""
+
     if dict1.get(key) is not None:
         return True
 
@@ -25,48 +26,13 @@ def delete_message(message):
 
     with bot.retrieve_data(message.chat.id) as data:
         pass
-    if check_key(key="msg_id_command", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_command"])
-    if check_key(key="msg_id_city", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_city"])
-    if check_key(key="msg_id_city2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_city2"])
-    if check_key(key="msg_id_hotel_count1", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_hotel_count1"])
-    if check_key(key="msg_id_mistake1", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_mistake1"])
-    if check_key(key="msg_id_hotel_count2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_hotel_count2"])
-    if check_key(key="msg_id_calendar1", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_calendar1"])
-    if check_key(key="msg_id_mistake2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_mistake2"])
-    if check_key(key="msg_id_calendar2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_calendar2"])
-    if check_key(key="msg_id_photo_count", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_photo_count"])
-    if check_key(key="msg_id_price_range", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_price_range"])
-    if check_key(key="msg_id_price_range2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_price_range2"])
-    if check_key(key="msg_id_photo_question", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_photo_question"])
-    if check_key(key="msg_id_photo_count2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_photo_count2"])
-    if check_key(key="msg_id_mistake3", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_mistake3"])
-    if check_key(key="msg_id_dist", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_dist"])
-    if check_key(key="msg_id_mistake4", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_mistake4"])
-    if check_key(key="msg_id_dist2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_dist2"])
-    if check_key(key="msg_id_photo_question2", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_photo_question2"])
-    if check_key(key="msg_id_mistake5", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_mistake5"])
-    if check_key(key="msg_id_check_info", dict1=data):
-        bot.delete_message(message.chat.id, message_id=data["msg_id_check_info"])
+
+    # проходимся по id-сообщений, проверяем есть ли id в словаре и удаляем при наличии
+    for key, value in data["msg_id"].items():
+        if check_key(key=key, dict1=data["msg_id"]) and value != 0:
+            bot.delete_message(message.chat.id, message_id=value)
+            # обнуляем id сообщения, чтобы не выходило ошибки при повторном вызове функции
+            data["msg_id"][key] = 0
 
 
 def date_to_text(date: str) -> str:
@@ -111,13 +77,13 @@ def send_info(message: Message) -> None:
            f'\n\n<b>Все верно❓</b>'
 
     msg = bot.send_message(message.chat.id,
-                                text,
-                                reply_markup=accept_info(),
-                                parse_mode='html')
+                           text,
+                           reply_markup=accept_info(),
+                           parse_mode='html')
 
     # сохраняем id_message сообщения с подтверждением информации, чтобы потом удалить его
     with bot.retrieve_data(message.chat.id) as data:
-        data["msg_id_check_info"] = msg.message_id
+        data["msg_id"]["msg_id_check_info"] = msg.message_id
 
 
 def photo(message: Message, hotels: List[Tuple]) -> List[List]:
@@ -141,10 +107,10 @@ def photo(message: Message, hotels: List[Tuple]) -> List[List]:
     return all_photo_list
 
 
-def send_info_for_db(user_id: int, command: str, hotels: List[Tuple]) -> None:
+def send_info_for_db(user_id: int, command: str, hotels: List[Tuple], city_name: str) -> None:
 
     date = str(datetime.datetime.now())
-    users_info = (user_id, date[:-7], command[1:])
+    users_info = (user_id, date[:-7], command[1:], city_name)
     add_in_db(users_info=users_info, hotels=hotels)
 
 
@@ -154,17 +120,16 @@ def start(message: Message) -> None:
 
     bot.set_state(message.from_user.id, UserState.command, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        data["command"] = message.text
-        data["msg_id_command"] = message.message_id
 
-    if data.get("msg_id_all_func") is not None:
-        bot.delete_message(message.chat.id, message_id=data["msg_id_all_func"])
-    if data.get("msg_id_again") is not None:
-        bot.delete_message(message.chat.id, message_id=data["msg_id_again"])
+        data["command"] = message.text
+
+        # создаем вложенный словарь, чтобы хранить в нем message_id
+        data["msg_id"] = {}
+        data["msg_id"]["msg_id_command"] = message.message_id
 
     bot.set_state(message.from_user.id, UserState.city, message.chat.id)
     msg = bot.send_message(message.from_user.id, '  🏙 Укажите город для поиска отелей:')
-    data["msg_id_city"] = msg.message_id
+    data["msg_id"]["msg_id_city"] = msg.message_id
 
 
 @bot.message_handler(state=UserState.city)
@@ -179,12 +144,12 @@ def set_city(message: Message) -> None:
         # получение доступа к данным, заданным в состояниях
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['city_name'] = message.text.title()
-            data["msg_id_hotel_count1"] = msg.message_id
-            data["msg_id_city2"] = message.message_id
+            data["msg_id"]["msg_id_hotel_count1"] = msg.message_id
+            data["msg_id"]["msg_id_city2"] = message.message_id
     else:
         msg = bot.send_message(message.from_user.id, 'Название города должно состоять из букв')
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-            data["msg_id_mistake1"] = msg.message_id
+            data["msg_id"]["msg_id_mistake1"] = msg.message_id
 
 
 @bot.message_handler(state=UserState.hotel_count)
@@ -195,7 +160,7 @@ def set_hotel_count(message: Message) -> None:
     if message.text.isdigit():
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['hotels_count'] = int(message.text)
-            data["msg_id_hotel_count2"] = message.message_id
+            data["msg_id"]["msg_id_hotel_count2"] = message.message_id
 
         # создаем первый календарь для даты заезда
         calendar, step = get_calendar(calendar_id=1,
@@ -205,14 +170,15 @@ def set_hotel_count(message: Message) -> None:
 
         bot.set_state(message.from_user.id, UserState.check_in, message.chat.id)
         msg = bot.send_message(message.chat.id, f'🗓 Выберите дату заселения: ',
-                         reply_markup=calendar)
+                               reply_markup=calendar)
+
         with bot.retrieve_data(message.chat.id) as data:
-            data["msg_id_calendar1"] = msg.message_id
+            data["msg_id"]["msg_id_calendar1"] = msg.message_id
 
     else:
         msg = bot.send_message(message.from_user.id, 'Введите, пожалуйста, цифрами')
         with bot.retrieve_data(message.chat.id) as data:
-            data["msg_id_mistake2"] = msg.message_id
+            data["msg_id"]["msg_id_mistake2"] = msg.message_id
 
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=1))
@@ -248,9 +214,10 @@ def calendar(call: CallbackQuery) -> None:
 
         bot.set_state(call.message.from_user.id, UserState.check_out, call.message.chat.id)
         msg = bot.send_message(call.message.chat.id, f'🗓 Выберите дату выезда: ',
-                         reply_markup=calendar)
+                               reply_markup=calendar)
+
         with bot.retrieve_data(call.message.chat.id) as data:
-            data["msg_id_calendar2"] = msg.message_id
+            data["msg_id"]["msg_id_calendar2"] = msg.message_id
 
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func(calendar_id=2))
@@ -285,7 +252,7 @@ def calendar(call: CallbackQuery) -> None:
             msg = bot.send_message(call.message.chat.id,
                                    '💲 Теперь укажите диапазон цен отелей(пример: 100 - 500)')
             with bot.retrieve_data(call.message.chat.id) as data:
-                data["msg_id_price_range"] = msg.message_id
+                data["msg_id"]["msg_id_price_range"] = msg.message_id
 
         else:
             # если команда НЕ bestdeal, то идем дальше по сценарию
@@ -295,7 +262,7 @@ def calendar(call: CallbackQuery) -> None:
 
             # сохраняем id этого сообщения, чтобы потом удалить
             with bot.retrieve_data(call.message.chat.id) as data:
-                data["msg_id_photo_question"] = msg.message_id
+                data["msg_id"]["msg_id_photo_question"] = msg.message_id
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'yes' or call.data == 'no')
@@ -308,7 +275,7 @@ def callback_inline(call: CallbackQuery) -> None:
                                    '✅ Введите количество фото для отображения')
 
             with bot.retrieve_data(call.message.chat.id) as data:
-                data["msg_id_photo_count"] = msg.message_id
+                data["msg_id"]["msg_id_photo_count"] = msg.message_id
             bot.set_state(call.from_user.id, UserState.photo_count)
 
         elif call.data == 'no':
@@ -323,7 +290,7 @@ def photo_count(message: Message) -> None:
     if message.text.isdigit():
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['photo_count'] = int(message.text)
-            data["msg_id_photo_count2"] = message.message_id
+            data["msg_id"]["msg_id_photo_count2"] = message.message_id
 
         # выводим подтверждения введенной информации
         send_info(message=message)
@@ -331,7 +298,7 @@ def photo_count(message: Message) -> None:
     else:
         msg = bot.send_message(message.from_user.id, 'Введите, пожалуйста, число')
         with bot.retrieve_data(message.chat.id) as data:
-            data["msg_id_mistake3"] = msg.message_id
+            data["msg_id"]["msg_id_mistake3"] = msg.message_id
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'show_result' or call.data == 'again')
@@ -346,12 +313,13 @@ def callback_func(call: CallbackQuery) -> None:
         elif call.data == 'again':
             with bot.retrieve_data(call.message.chat.id) as data:
                 pass
-            msg = bot.send_message(call.message.chat.id, ' 🔁 Тогда давайте введем данные заново,'
-                                                   'Для этого нажмите на кнопку',
-                             reply_markup=start_again(command=data["command"]))
-
-            data["msg_id_again"] = msg.message_id
             delete_message(call.message)
+
+            msg = bot.send_message(call.message.chat.id, ' 🔁 Тогда давайте введем данные заново,'
+                                                         'Для этого нажмите на кнопку',
+                                   reply_markup=start_again(command=data["command"]))
+
+            data["msg_id_2"]["msg_id_again"] = msg.message_id
 
 
 def show_hotels(message: Message) -> None:
@@ -365,8 +333,8 @@ def show_hotels(message: Message) -> None:
 
     with bot.retrieve_data(message.chat.id) as data:
         pass
-    data["msg_id_sticker1"] = msg1.message_id
-    data["msg_id_sticker2"] = msg2.message_id
+    data["msg_id"]["msg_id_sticker1"] = msg1.message_id
+    data["msg_id"]["msg_id_sticker2"] = msg2.message_id
 
     # получаем id города
     city_id = get_city_id(data["city_name"])
@@ -440,8 +408,8 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
         pass
 
     # удаляем сообщение с поиском и стикер перед выдачей результата
-    bot.delete_message(message.chat.id, message_id=data["msg_id_sticker1"])
-    bot.delete_message(message.chat.id, message_id=data["msg_id_sticker2"])
+    bot.delete_message(message.chat.id, message_id=data["msg_id"]["msg_id_sticker1"])
+    bot.delete_message(message.chat.id, message_id=data["msg_id"]["msg_id_sticker2"])
 
     text = f'Результат поиска по команде: {data["command"][1:]}' \
            f'\nГород: {data["city_name"]}' \
@@ -464,9 +432,10 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
                    f'\n📈 Рейтинг отеля: {hotels[i][4]}' \
 
             bot.send_message(message.chat.id, text,
-                                   reply_markup=geo_favorite(hotels[i][7],
-                                                             hotels[i][8],
-                                                             hotels[i][1]))
+                             reply_markup=geo_favorite(lat=hotels[i][7],
+                                                       lon=hotels[i][8],
+                                                       hotels=hotels[i][1],
+                                                       city_name=data["city_name"]))
 
         # ловим исключение, которое возникнет в результате того, что отелей по заданному
         # расстоянию от центра будет меньше, указанного пользователем
@@ -490,10 +459,12 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
     # вызываем функцию для формирования информации для записи в бд
     send_info_for_db(hotels=hotels,
                      user_id=message.chat.id,
-                     command=data["command"])
+                     command=data["command"],
+                     city_name=data["city_name"])
 
-    msg= bot.send_message(message.chat.id, 'Выберите одну из функции:', reply_markup=all_commands())
-    data["msg_id_all_func"] = msg.message_id
+    msg = bot.send_message(message.chat.id, 'Выберите одну из функции:',
+                           reply_markup=all_commands())
+    data["msg_id"]["msg_id_all_func"] = msg.message_id
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('geo'))
@@ -508,8 +479,6 @@ def callback_func(call: CallbackQuery) -> None:
         lon = float(geo_data[2])
         hotel_name = geo_data[3]
         if call.data:
-            with bot.retrieve_data(call.message.chat.id) as data:
-                pass
             bot.send_message(call.message.chat.id, f'Расположение на карте для отеля: {hotel_name}')
             bot.send_location(call.message.chat.id, latitude=lat, longitude=lon)
 
@@ -521,10 +490,16 @@ def callback_func(call: CallbackQuery) -> None:
     if call.message:
         info = call.data.split('/')
         hotel_name = info[1]
+        city_name = info[2]
         with bot.retrieve_data(call.message.chat.id) as data:
             pass
         for i in range(len(data["hotel"])):
+
+            # проверяем название отеля из общего списка отелей на совпадение
             if data["hotel"][i][1].startswith(hotel_name):
-                add_in_favorite(user_id=call.from_user.id, hotel=data["hotel"][i])
+                add_in_favorite(user_id=call.from_user.id,
+                                hotel=data["hotel"][i],
+                                city_name=city_name)
+
                 bot.send_message(call.message.chat.id,
                                  f'Отель {data["hotel"][i][1]} добавлен в избранное')
