@@ -279,7 +279,7 @@ def calendar(call: CallbackQuery) -> None:
         if data["command"] == '/bestdeal':
             bot.set_state(call.message.chat.id, UserState.prices)
             msg = bot.send_message(call.message.chat.id,
-                                   '💲 Теперь укажите диапазон цен отелей(пример: 100 - 500)')
+                                   '💲 Теперь укажите диапазон цен отелей в $(пример: 100 - 500)')
             with bot.retrieve_data(call.message.chat.id) as data:
                 data["msg_id"]["msg_id_price_range"] = msg.message_id
 
@@ -526,6 +526,9 @@ def get_info(message: Message, hotels: List[Tuple], all_photo_list: List[List] =
     msg = bot.send_message(message.chat.id, 'Выберите одну из функции:',
                            reply_markup=all_commands())
     data["msg_id"]["msg_id_all_func"] = msg.message_id
+
+    # удаляем перед следующим выводом результата
+    del data["photo_count"]
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('geo'))

@@ -132,6 +132,9 @@ def requests_to_api(url: str, querystring: (str, Dict)) -> (Dict, None):
     except requests.exceptions.ReadTimeout:
         logger.warning("Превышено время ожидания для подключения к API hotels")
         return None
+    except json.decoder.JSONDecodeError:
+        logger.warning("Получены неккоректные данные от API")
+        return None
 
 
 def get_city_id(city_name: str) -> (str, None):
