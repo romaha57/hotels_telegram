@@ -1,7 +1,10 @@
 import os
 from dotenv import load_dotenv, find_dotenv
+from loguru import logger
+
 
 if not find_dotenv():
+    logger.warning('Переменные окружения не загружены т.к отсутствует файл .env')
     exit('Переменные окружения не загружены т.к отсутствует файл .env')
 else:
     load_dotenv()

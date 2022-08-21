@@ -1,5 +1,6 @@
 import sqlite3
 from typing import Tuple, List
+from loguru import logger
 
 
 def create_db_hotels() -> None:
@@ -36,6 +37,8 @@ def add_in_db(users_info: Tuple, hotels: List[Tuple]) -> None:
         cursor.execute("""INSERT INTO users(user_id, date, command, city, hotels) 
                     VALUES(?, ?, ?, ?, ?)""", users_info)
 
+    logger.debug("Данные успешно добавлено в БД(таблица users)")
+
 
 def get_info_from_database(user_id: int, limit: str) -> List:
     """Функция, которая выводит информацию по отелям из БД"""
@@ -59,6 +62,8 @@ def delete_from_db(id_string):
         cursor = connect.cursor()
         cursor.execute("DELETE from users WHERE id = ?", (id_string,))
 
+    logger.debug("Данные успешно удалены из БД(таблица users)")
+
 
 def clean_table() -> int:
     """Функция, которая удаляет все записи из БД"""
@@ -67,6 +72,8 @@ def clean_table() -> int:
         cursor = connect.cursor()
         cursor.execute("DELETE FROM users;",)
         count_str = cursor.rowcount
+
+    logger.debug("Все данные из БД успешно удалены(таблица users)")
 
     # возвращаем количество удаленных записей
     return count_str
@@ -98,6 +105,8 @@ def add_in_favorite(user_id: int, hotel: str, city_name: str) -> None:
         cursor.execute("""INSERT INTO favorite(user_id, city, hotel) 
                     VALUES(?, ?, ?)""", (user_id, city_name, hotel_str))
 
+    logger.debug("Данные успешно добавлено в БД(таблица favorite)")
+
 
 def get_favorite(user_id: int, limit: str) -> List:
     """Функция, которая выводит информацию по данным из таблицы favorite"""
@@ -119,3 +128,5 @@ def delete_from_favorite(id_string):
     with sqlite3.connect("hotels.db") as connect:
         cursor = connect.cursor()
         cursor.execute("DELETE from favorite WHERE id = ?", (id_string,))
+
+    logger.debug("Данные успешно удалены из БД(таблица favorite)")

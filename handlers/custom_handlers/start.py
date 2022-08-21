@@ -1,15 +1,24 @@
+from telebot.types import Message
+from loguru import logger
+
 from keyboards.reply.all_command import all_commands
 from loader import bot
-from telebot.types import Message
+from utils.my_log import debug_log_write, warning_log_write
+
+# вызываем функции для создания логов
+debug_log_write()
+warning_log_write()
 
 
 @bot.message_handler(commands=['start'])
 def start(message: Message) -> None:
     """Функция при вводе команды /start"""
 
+    logger.debug('Отловили команду start')
+
     text = """\nДоступные функции:\n
-/lowprice - поиск самых дешевых отелей в выбранном городе 📈
-/highprice - поиск самых дорогих отелей в выбранном городе 📉
+/lowprice - поиск дешевых отелей в выбранном городе 📈
+/highprice - поиск дорогих отелей в выбранном городе 📉
 /bestdeal - поиск отелей в выбранном ценовом диапазоне и удаленности от центра 🔝
 /history - история поиска 📒
 /favorite - избранные отели ❤

@@ -1,4 +1,6 @@
 from telebot.types import Message
+from loguru import logger
+
 from keyboards.inline.question_photo import question_photo
 from loader import bot
 from states.UserState import UserState
@@ -13,6 +15,8 @@ def set_prices(message: Message) -> None:
         start_price = int(prices[0].strip())
         stop_price = int(prices[1].strip())
 
+        logger.debug("Пользователь ввел диапазон цен")
+
         text = '🔛 Отлично, теперь укажите максимальную желаемую удаленность от центра' \
                '(в км, например 0.5):'
 
@@ -25,6 +29,7 @@ def set_prices(message: Message) -> None:
             data["msg_id"]["msg_id_price_range2"] = message.message_id
 
     except TypeError:
+        logger.warning("Пользователь ввел диапазон цен с ошибкой")
         msg = bot.send_message(message.chat.id, 'Некорректный ввод.Попробуйте еще раз')
         with bot.retrieve_data(message.chat.id) as data:
             data["msg_id"]["msg_id_mistake4"] = msg.message_id
@@ -36,7 +41,7 @@ def date(message: Message) -> None:
     устанавливает состояние на photo_count, чтобы вернуться на основной сценарий"""
 
     if not message.text.isalpha():
-
+        logger.debug("Пользователь ввел расстояние от центра")
         with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
             data['dist_range'] = message.text
             data["msg_id"]["msg_id_dist2"] = message.message_id
@@ -47,6 +52,7 @@ def date(message: Message) -> None:
         data["msg_id"]["msg_id_photo_question2"] = msg.message_id
 
     else:
+        logger.warning("Пользователь ввел расстояние от центра с ошибкой")
         msg = bot.send_message(message.chat.id, 'Ошибка ввода, введите число')
         with bot.retrieve_data(message.chat.id) as data:
             data["msg_id"]["msg_id_mistake5"] = msg.message_id
